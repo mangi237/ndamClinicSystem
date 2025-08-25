@@ -7,6 +7,13 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "fonts": [
+      "Poppins-Regular",
+      "Poppins-Medium",
+      "Poppins-SemiBold",
+      "Poppins-Bold"
+    ],
+
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
