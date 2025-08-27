@@ -5,15 +5,15 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from './context/AuthContext';
-import CategorySelection from './screens/CategorySelection';
-import LoginScreen from './screens/LoginScreen';
-import AdminDashboard from './screens/admin/AdminDashboard';
-import DoctorDashboard from './screens/doctor/DoctorDashboard';
-import NurseDashboard from './screens/nurse/NurseDashboard';
+import { AuthProvider } from './context/authContext';
+import CategorySelection from './screens/categorySelection';
+import LoginScreen from './screens/authentication/authScreen';
+import AdminDashboard from './screens/admin/adminDashboard';
+import DoctorDashboard from './screens/doctor/doctorDashboard';
+// import NurseDashboard from './screens/nurse/NurseDashboard';
 import LabTechDashboard from './screens/lab/LabTechDashboard';
-import PharmacistDashboard from './screens/pharmacy/PharmacistDashboard';
-
+import PharmacistDashboard from './screens/pharmacist/pharmacistDashboard';
+import NurseDashboard  from './screens/nurse/nurseDashboard';
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
@@ -21,10 +21,10 @@ const Stack = createStackNavigator();
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    'Poppins-Regular': require('./assets/fonts/Poppins-Regular.ttf'),
-    'Poppins-Medium': require('./assets/fonts/Poppins-Medium.ttf'),
-    'Poppins-SemiBold': require('./assets/fonts/Poppins-SemiBold.ttf'),
-    'Poppins-Bold': require('./assets/fonts/Poppins-Bold.ttf'),
+    'Poppins-Regular': require('./assets/fonts/Poppins/Poppins-Regular.ttf'),
+    'Poppins-Medium': require('./assets/fonts/Poppins/Poppins-Medium.ttf'),
+    'Poppins-SemiBold': require('./assets/fonts/Poppins/Poppins-SemiBold.ttf'),
+    'Poppins-Bold': require('./assets/fonts/Poppins/Poppins-Bold.ttf'),
   });
 
   const [appIsReady, setAppIsReady] = useState(false);
@@ -64,6 +64,7 @@ export default function App() {
       <AuthProvider>
         <NavigationContainer>
           <Stack.Navigator 
+           id={undefined}
             initialRouteName="CategorySelection" 
             screenOptions={{ 
               headerShown: false,

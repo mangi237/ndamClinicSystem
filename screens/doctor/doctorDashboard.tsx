@@ -9,9 +9,10 @@ import Medications from '../../components/medical/Medications';
 
 const Tab = createBottomTabNavigator();
 
-const DoctorDashboard = () => {
+const DoctorDashboard : React.FC= () => {
   return (
     <Tab.Navigator
+    id={undefined}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;

@@ -1,9 +1,9 @@
-// screens/LoginScreen.js
+// screens/LoginScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/authContext';
 
 const LoginScreen = ({ navigation, route }) => {
   const [code, setCode] = useState('');
@@ -16,14 +16,10 @@ const LoginScreen = ({ navigation, route }) => {
       return;
     }
 
-    // In a real app, you would validate the code against your backend
-    // For demo purposes, we'll use a simple pattern: role + "123"
-    const email = `${role}@ndamclinic.com`;
-    const password = `${role}123`;
-    
-    const result = await login(email, password);
+    const result = await login(code);
     
     if (result.success) {
+      console.log('Login Results', result)
       switch (result.role) {
         case 'admin':
           navigation.navigate('AdminDashboard');
@@ -44,7 +40,7 @@ const LoginScreen = ({ navigation, route }) => {
           Alert.alert('Error', 'Invalid role');
       }
     } else {
-      Alert.alert('Login Failed', result.error);
+      Alert.alert('Login Failed', result.error || 'Invalid access code');
     }
   };
 
@@ -57,19 +53,19 @@ const LoginScreen = ({ navigation, route }) => {
       
       <Animatable.View animation="fadeInUp" duration={1000} style={styles.formContainer}>
         <View style={styles.inputContainer}>
-          <Ionicons name="lock-closed" size={20} color="#7F8C8D" />
+          <Ionicons name="key" size={20} color="#7F8C8D" />
           <TextInput
             style={styles.input}
             placeholder="Enter your access code"
             value={code}
             onChangeText={setCode}
-            secureTextEntry
             autoCapitalize="none"
+            editable={!loading}
           />
         </View>
         
         <TouchableOpacity 
-          style={styles.loginButton}
+          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
           onPress={handleLogin}
           disabled={loading}
         >
@@ -81,7 +77,8 @@ const LoginScreen = ({ navigation, route }) => {
         </TouchableOpacity>
         
         <Text style={styles.noteText}>
-          Your access code is provided by the administrator
+          Your access code is provided by the administrator{'\n'}
+          Example code for admin: ADM001
         </Text>
       </Animatable.View>
     </View>
@@ -149,6 +146,9 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: 'center',
     marginBottom: 20,
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#7F8C8D',
   },
   loginButtonText: {
     color: 'white',

@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db } from '../../services/firebase';
+import { Patient } from '../../types/Patient';
 
 const PatientList = () => {
-  const [patients, setPatients] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredPatients, setFilteredPatients] = useState([]);
-
+  const [patients, setPatients] = useState<Patient[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+  
   useEffect(() => {
     fetchPatients();
   }, []);
@@ -29,9 +30,9 @@ const PatientList = () => {
   const fetchPatients = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'patients'));
-      const patientsData = [];
+      const patientsData: Patient[] = [];
       querySnapshot.forEach((doc) => {
-        patientsData.push({ id: doc.id, ...doc.data() });
+        patientsData.push({ id: doc.id, ...doc.data() } as Patient);
       });
       setPatients(patientsData);
     } catch (error) {
@@ -119,24 +120,23 @@ const styles = StyleSheet.create({
   patientInfo: {
     flex: 1,
   },
-
-    patientName: {
+  patientName: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 5,
-    fontFamily: 'Poppins-SemiBold', // Add this
+    fontFamily: 'Poppins-SemiBold',
     color: '#2C3E50',
   },
   patientDetails: {
     fontSize: 14,
     color: '#7F8C8D',
     marginBottom: 5,
-    fontFamily: 'Poppins-Regular', // Add this
+    fontFamily: 'Poppins-Regular',
   },
   patientStatus: {
     fontSize: 14,
     color: '#27AE60',
-    fontFamily: 'Poppins-Regular', // Add this
+    fontFamily: 'Poppins-Regular',
   },
 });
 

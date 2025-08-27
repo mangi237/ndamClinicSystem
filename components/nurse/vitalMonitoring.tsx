@@ -5,12 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, getDocs, addDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Patient } from '../../types/Patient';
 
 const VitalsMonitoring = () => {
-  const [patients, setPatients] = useState([]);
+ const [patients, setPatients] = useState<Patient[]>([]); 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredPatients, setFilteredPatients] = useState([]);
-  const [selectedPatient, setSelectedPatient] = useState(null);
+const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]); // Add type annotation
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null); // Add type annotation
+
   const [modalVisible, setModalVisible] = useState(false);
   const [vitals, setVitals] = useState({
     temperature: '',
@@ -45,9 +47,9 @@ const VitalsMonitoring = () => {
   const fetchPatients = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'patients'));
-      const patientsData = [];
+  const patientsData: Patient[] = []; 
       querySnapshot.forEach((doc) => {
-        patientsData.push({ id: doc.id, ...doc.data() });
+        patientsData.push({ id: doc.id, ...doc.data() } as Patient);
       });
       setPatients(patientsData);
     } catch (error) {

@@ -4,13 +4,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import Overview from '../../components/admin/Overview';
 import ManageStaff from '../../components/admin/ManageStaff';
-import Analytics from '../../components/admin/Analytics';
+import Analytics from '../../components/admin/Analatytics';
 
 const Tab = createBottomTabNavigator();
 
-const AdminDashboard = () => {
+const AdminDashboard : React.FC= () => {
   return (
     <Tab.Navigator
+    id={undefined}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;

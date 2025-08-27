@@ -6,11 +6,11 @@ import PatientList from '../../components/medical/PatientList';
 import PatientHistory from '../../components/medical/PatientHistory';
 import Appointments from '../../components/medical/Appointments';
 import Medications from '../../components/medical/Medications';
-import VitalsMonitoring from '../../components/nurse/VitalsMonitoring';
+import VitalsMonitoring from '../../components/nurse/vitalMonitoring';
 
 const Tab = createBottomTabNavigator();
 
-const NurseDashboard = () => {
+const NurseDashboard : React.FC= () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({

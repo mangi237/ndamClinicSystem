@@ -6,10 +6,10 @@ import * as Animatable from 'react-native-animatable';
 
 const CategorySelection = ({ navigation }) => {
   const categories = [
-    { id: 1, title: 'Doctor/Nurse', icon: 'medical', color: '#2E86C1', route: 'LoginScreen', role: 'medical' },
-    { id: 2, title: 'Administrator', icon: 'person', color: '#27AE60', route: 'LoginScreen', role: 'admin' },
-    { id: 3, title: 'Laboratory Technician', icon: 'flask', color: '#8E44AD', route: 'LoginScreen', role: 'lab' },
-    { id: 4, title: 'Pharmacist', icon: 'medical-bag', color: '#E67E22', route: 'LoginScreen', role: 'pharmacy' },
+    { id: 1, title: 'Doctor/Nurse', icon: 'medical' as const, color: '#2E86C1', route: 'LoginScreen', role: 'medical' },
+    { id: 2, title: 'Administrator', icon: 'person' as const , color: '#27AE60', route: 'LoginScreen', role: 'admin' },
+    { id: 3, title: 'Laboratory Technician', icon: 'flask' as const , color: '#8E44AD', route: 'LoginScreen', role: 'lab' },
+    { id: 4, title: 'Pharmacist', icon: 'medical-bag' as const , color: '#E67E22', route: 'LoginScreen', role: 'pharmacy' },
   ];
 
   const handleCategorySelect = (role) => {
@@ -35,7 +35,7 @@ const CategorySelection = ({ navigation }) => {
               style={[styles.categoryCard, { backgroundColor: category.color }]}
               onPress={() => handleCategorySelect(category.role)}
             >
-              <Ionicons name={category.icon} size={40} color="white" />
+                      <Ionicons name={category.icon  as unknown as keyof typeof Ionicons.glyphMap} size={40} color="white" />
               <Text style={styles.categoryText}>{category.title}</Text>
             </TouchableOpacity>
           </Animatable.View>
