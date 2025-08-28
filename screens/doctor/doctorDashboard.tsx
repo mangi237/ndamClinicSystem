@@ -1,17 +1,15 @@
-// screens/doctor/DoctorDashboard.js
+// screens/doctor/DoctorDashboard.tsx
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import PatientList from '../../components/medical/PatientList';
-import PatientHistory from '../../components/medical/PatientHistory';
-import Appointments from '../../components/medical/Appointments';
-import Medications from '../../components/medical/Medications';
+import PatientDetailsScreen from '../../screens/PatientDetailsScreen';
 
-const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
-const DoctorDashboard : React.FC= () => {
+const DoctorDashboard = () => {
   return (
-    <Tab.Navigator
+    <Stack.Navigator
     id={undefined}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
@@ -19,12 +17,6 @@ const DoctorDashboard : React.FC= () => {
 
           if (route.name === 'Patients') {
             iconName = focused ? 'people' : 'people-outline';
-          } else if (route.name === 'History') {
-            iconName = focused ? 'document-text' : 'document-text-outline';
-          } else if (route.name === 'Appointments') {
-            iconName = focused ? 'calendar' : 'calendar-outline';
-          } else if (route.name === 'Medications') {
-            iconName = focused ? 'medical' : 'medical-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -40,11 +32,23 @@ const DoctorDashboard : React.FC= () => {
         },
       })}
     >
-      <Tab.Screen name="Patients" component={PatientList} />
-      <Tab.Screen name="History" component={PatientHistory} />
-      <Tab.Screen name="Appointments" component={Appointments} />
-      <Tab.Screen name="Medications" component={Medications} />
-    </Tab.Navigator>
+      <Stack.Screen 
+        name="PatientList" 
+        component={PatientList} 
+        options={{
+          title: 'Patient List',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen 
+        name="PatientDetails" 
+        component={PatientDetailsScreen}
+        options={{
+          title: 'Patient Details',
+          headerShown: true,
+        }}
+      />
+    </Stack.Navigator>
   );
 };
 

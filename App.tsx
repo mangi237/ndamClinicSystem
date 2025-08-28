@@ -14,6 +14,8 @@ import DoctorDashboard from './screens/doctor/doctorDashboard';
 import LabTechDashboard from './screens/lab/LabTechDashboard';
 import PharmacistDashboard from './screens/pharmacist/pharmacistDashboard';
 import NurseDashboard  from './screens/nurse/nurseDashboard';
+import PatientDetailsScreen from './screens/PatientDetailsScreen';
+
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
@@ -92,6 +94,14 @@ export default function App() {
               }}
             />
             <Stack.Screen 
+  name="PatientDetails" 
+  component={PatientDetailsScreen}
+  options={{
+    title: 'Patient Details',
+    headerShown: true,
+  }}
+/>
+            <Stack.Screen 
               name="LoginScreen" 
               component={LoginScreen} 
               options={{
@@ -124,7 +134,9 @@ export default function App() {
               component={LabTechDashboard} 
               options={{
                 gestureEnabled: false,
+                headerShown: false,
               }}
+
             />
             <Stack.Screen 
               name="PharmacistDashboard" 
