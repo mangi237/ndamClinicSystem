@@ -14,6 +14,16 @@ interface AddNoteModalProps {
   patientId: string;
 }
 
+// Add this helper function
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case 'high': return '#E74C3C';
+    case 'medium': return '#F39C12';
+    case 'low': return '#27AE60';
+    default: return '#7F8C8D';
+  }
+};
+
 const AddNoteModal: React.FC<AddNoteModalProps> = ({
   visible,
   onClose,
@@ -161,15 +171,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
   );
 };
 
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
-    case 'high': return '#E74C3C';
-    case 'medium': return '#F39C12';
-    case 'low': return '#27AE60';
-    default: return '#7F8C8D';
-  }
-};
-
+// Add the missing styles
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
@@ -197,7 +199,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#2C3E50',
-    fontFamily: 'Poppins-Bold',
   },
   formContainer: {
     flex: 1,
@@ -209,7 +210,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2C3E50',
     marginBottom: 5,
-    fontFamily: 'Poppins-Medium',
   },
   input: {
     backgroundColor: 'white',
@@ -218,7 +218,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    fontFamily: 'Poppins-Regular',
   },
   textArea: {
     height: 120,
@@ -242,7 +241,6 @@ const styles = StyleSheet.create({
   categoryText: {
     color: '#2C3E50',
     fontSize: 12,
-    fontFamily: 'Poppins-Medium',
   },
   categoryTextSelected: {
     color: 'white',
@@ -265,7 +263,6 @@ const styles = StyleSheet.create({
   priorityText: {
     color: '#2C3E50',
     fontSize: 12,
-    fontFamily: 'Poppins-Medium',
   },
   priorityTextSelected: {
     color: 'white',
@@ -284,7 +281,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Poppins-SemiBold',
   },
 });
 

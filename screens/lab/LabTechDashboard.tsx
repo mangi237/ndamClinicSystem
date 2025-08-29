@@ -1,14 +1,17 @@
-// screens/lab/LabTechDashboard.tsx
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import PatientList from '../../components/medical/PatientList';
 import PatientDetailsScreen from '../../screens/PatientDetailsScreen';
 import LabTestModal from '../../components/lab/LabTestModal';
+import { useAuth } from '../../context/authContext';
+import { RootStackParamList } from '../../types/Navigation';
 
-const Stack = createStackNavigator();
+const Stack = createStackNavigator<RootStackParamList>();
 
-const LabTechDashboard = () => {
+const LabTechDashboard: React.FC = () => {
+  const { user } = useAuth();
+
   return (
     <Stack.Navigator
     id={undefined}
@@ -16,13 +19,13 @@ const LabTechDashboard = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === 'Patients') {
+          if (route.name === 'PatientList' as keyof RootStackParamList) {
             iconName = focused ? 'people' : 'people-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#8E44AD', // Purple color for lab
+        tabBarActiveTintColor: '#8E44AD',
         tabBarInactiveTintColor: 'gray',
         headerStyle: {
           backgroundColor: '#8E44AD',
@@ -57,8 +60,9 @@ const LabTechDashboard = () => {
           headerShown: true,
         }}
       />
+      
     </Stack.Navigator>
   );
 };
 
-export default LabTechDashboard;
+export default LabTechDashboard

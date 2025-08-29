@@ -31,64 +31,37 @@ const LabTestModal: React.FC<LabTestModalProps> = ({
     notes: '',
   });
 
-  const handleSubmit = async () => {
-    if (!selectedTest) {
-      Alert.alert('Error', 'Please select a test type');
-      return;
-    }
+const handleSubmit = async () => {
+  if (!selectedTest) {
+    Alert.alert('Error', 'Please select a test type');
+    return;
+  }
 
-    setLoading(true);
-    try {
-      const testData: LabTestCreateData = {
-        patientId,
-        patientName,
-        testType: selectedTest,
-        result: formData.result as 'positive' | 'negative' | 'inconclusive' | 'pending',
-        values: formData.values || {},
-        notes: formData.notes,
-        // testImage: formData.testImage, // Commented out for now
-      };
-
-      await addDoc(collection(db, 'labTests'), {
-        ...testData,
-        technicianId: user?.id,
-        technicianName: user?.name || 'Lab Technician',
-        status: 'completed',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      // Also add as a note for the patient
-      await addDoc(collection(db, 'notes'), {
-        patientId,
-        doctorId: user?.id,
-        doctorName: user?.name || 'Lab Technician',
-        title: `Lab Test: ${LabTestConfig[selectedTest].name}`,
-        content: `Lab test performed: ${LabTestConfig[selectedTest].name}. Result: ${formData.result}. ${formData.notes ? `Notes: ${formData.notes}` : ''}`,
-        category: 'lab',
-        priority: formData.result === 'positive' ? 'high' : 'medium',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      
-      Alert.alert('Success', 'Lab test added successfully!');
-      onTestAdded();
-      onClose();
-      
-      // Reset form
-      setSelectedTest(null);
-      setFormData({
-        result: 'pending',
-        values: {},
-        notes: '',
-      });
-    } catch (error: any) {
-      console.error('Error adding lab test:', error);
-      Alert.alert('Error', `Failed to add lab test: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const testData = {
+      patientId,
+      patientName,
+      testType: selectedTest,
+      result: formData.result || 'pending',
+      values: formData.values || {},
+      notes: formData.notes || '',
+      testImage: formData.testImage || '',
+      technicianId: user?.id || 'N/A',
+      technicianName: user?.name || 'N/A',
+      status: 'completed',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await addDoc(collection(db, 'labTests'), testData);
+    onTestAdded();
+    onClose();
+  } catch (error: any) {
+    Alert.alert('Error adding lab test', error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleValueChange = (fieldName: string, value: string) => {
     setFormData(prev => ({

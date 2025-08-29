@@ -1,28 +1,31 @@
-// components/medical/PatientList.tsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { Patient } from '../../types/Patient';
 import AddPatientModal from './addPatientModal';
+import { useAuth } from '../../context/authContext';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../types/Navigation';
 
-const PatientList = ({ navigation }) => {
+type PatientListNavigationProp = StackNavigationProp<RootStackParamList, 'PatientDetails'>;
+
+const PatientList: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const { user } = useAuth();
+  const navigation = useNavigation<PatientListNavigationProp>();
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'patients'), (snapshot) => {
-      const patientsData: Patient[] = [];
-      snapshot.forEach((doc) => {
-        patientsData.push({ id: doc.id, ...doc.data() } as Patient);
-      });
-      setPatients(patientsData);
+    const q = query(collection(db, 'patients'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setPatients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient)));
     });
-
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -43,7 +46,10 @@ const PatientList = ({ navigation }) => {
   };
 
   const handlePatientPress = (patient: Patient) => {
-    navigation.navigate('PatientDetails', { patient });
+    navigation.navigate('PatientDetails', { 
+      patient: patient,
+      // userRole: user?.role 
+    });
   };
 
   const renderPatientItem = ({ item }: { item: Patient }) => (
@@ -69,31 +75,23 @@ const PatientList = ({ navigation }) => {
     </TouchableOpacity>
   );
 
+  const onAddPatient = () => {
+    setModalVisible(true);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#7F8C8D" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search patients by name, ID, or phone"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <Ionicons name="add" size={24} color="white" />
+        <Text style={styles.title}>Patients</Text>
+        <TouchableOpacity style={styles.addButton} onPress={onAddPatient}>
+          <Ionicons name="add" size={20} color="white" />
+          <Text style={styles.addButtonText}>Add Patient</Text>
         </TouchableOpacity>
       </View>
-      
       <FlatList
-        data={filteredPatients}
+        data={patients}
         renderItem={renderPatientItem}
-        keyExtractor={item => item.id || item.patientId}
+        keyExtractor={item => item.id}
         contentContainerStyle={styles.listContainer}
       />
 
@@ -118,29 +116,16 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     gap: 10,
   },
-  searchContainer: {
+  title: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: 'Poppins-Regular',
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2C3E50',
+    fontFamily: 'Poppins-Bold',
   },
   addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#27AE60',
     borderRadius: 10,
     padding: 12,
@@ -149,6 +134,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    marginLeft: 8,
+    fontFamily: 'Poppins-SemiBold',
   },
   listContainer: {
     paddingBottom: 20,

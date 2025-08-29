@@ -1,155 +1,150 @@
 // components/medical/LabTestsList.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { LabTest, LabTestConfig } from '../../types/LabTest';
+import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { LabTestConfig } from '../../types/LabTest';
+
+interface LabTest {
+  id: string;
+  testType: string;
+  result: string;
+  status: string;
+  createdAt: any;
+  values?: Record<string, any>;
+  notes?: string;
+  technicianName?: string;
+}
 
 interface LabTestsListProps {
   patientId: string;
   onAddTest?: () => void;
+  userRole?: string;
 }
 
-const LabTestsList: React.FC<LabTestsListProps> = ({ patientId, onAddTest }) => {
+const LabTestsList: React.FC<LabTestsListProps> = ({ patientId, onAddTest, userRole }) => {
   const [labTests, setLabTests] = useState<LabTest[]>([]);
-  const [expandedTestId, setExpandedTestId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  console.log('LabTestsList - User role:', userRole);
+  console.log('LabTestsList - onAddTest provided:', !!onAddTest);
 
   useEffect(() => {
-    if (!patientId) return;
+    if (!patientId) {
+      setError('No patient ID provided');
+      setLoading(false);
+      return;
+    }
 
-    const testsRef = collection(db, 'labTests');
-    const q = query(
-      testsRef, 
-      where('patientId', '==', patientId),
-      orderBy('createdAt', 'desc')
-    );
+    console.log('Setting up lab tests listener for patient:', patientId);
+    
+    try {
+      const q = query(
+        collection(db, 'labTests'),
+        where('patientId', '==', patientId),
+        orderBy('createdAt', 'desc')
+      );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const testsData: LabTest[] = [];
-      snapshot.forEach((doc) => {
-        testsData.push({ id: doc.id, ...doc.data() } as LabTest);
-      });
-      setLabTests(testsData);
-    });
+      const unsubscribe = onSnapshot(q, 
+        (snapshot) => {
+          const tests = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as LabTest[];
+          
+          console.log('Lab tests loaded:', tests.length);
+          setLabTests(tests);
+          setLoading(false);
+          setError(null);
+        },
+        (error) => {
+          console.error('Error fetching lab tests:', error);
+          setError('Failed to load lab tests');
+          setLoading(false);
+        }
+      );
 
-    return unsubscribe;
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up lab tests listener:', error);
+      setError('Error setting up lab tests listener');
+      setLoading(false);
+    }
   }, [patientId]);
 
-  const toggleExpand = (testId: string) => {
-    setExpandedTestId(expandedTestId === testId ? null : testId);
-  };
-
-  const formatDate = (date: any) => {
-    if (!date) return '';
-    try {
-      const d = date.toDate ? date.toDate() : new Date(date);
-      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
-    } catch (error) {
-      return 'Invalid date';
-    }
-  };
-
-  const getResultColor = (result: string) => {
-    switch (result) {
-      case 'positive': return '#E74C3C';
-      case 'negative': return '#27AE60';
-      case 'inconclusive': return '#F39C12';
-      case 'pending': return '#7F8C8D';
-      default: return '#7F8C8D';
-    }
-  };
-
-  const renderTestItem = ({ item }: { item: LabTest }) => {
-    const isExpanded = expandedTestId === item.id;
-    const testConfig = LabTestConfig[item.testType];
-
-    return (
-      <TouchableOpacity 
-        style={[styles.testItem, isExpanded && styles.testItemExpanded]}
-        onPress={() => toggleExpand(item.id!)}
-      >
-        <View style={styles.testHeader}>
-          <View style={styles.testTitleContainer}>
-            <Ionicons name="flask" size={16} color="#8E44AD" />
-            <Text style={styles.testTitle} numberOfLines={1}>
-              {testConfig.name}
-            </Text>
-          </View>
-          <Ionicons 
-            name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-            size={16} 
-            color="#7F8C8D" 
-          />
-        </View>
-
-        <View style={styles.testMeta}>
-          <Text style={[styles.testResult, { color: getResultColor(item.result) }]}>
-            {item.result.toUpperCase()}
-          </Text>
-          <Text style={styles.testDate}>{formatDate(item.createdAt)}</Text>
-        </View>
-
-        {isExpanded && (
-          <View style={styles.testContent}>
-            <Text style={styles.testTechnician}>
-              By: {item.technicianName}
-            </Text>
-            
-            {Object.entries(item.values).length > 0 && (
-              <View style={styles.testValues}>
-                <Text style={styles.valuesTitle}>Test Values:</Text>
-                {Object.entries(item.values).map(([key, value]) => (
-                  <View key={key} style={styles.valueItem}>
-                    <Text style={styles.valueLabel}>
-                      {key}: 
-                    </Text>
-                    <Text style={styles.value}>
-                      {value}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {item.notes && (
-              <View style={styles.notesContainer}>
-                <Text style={styles.notesTitle}>Notes:</Text>
-                <Text style={styles.notesText}>{item.notes}</Text>
-              </View>
-            )}
-          </View>
+  const renderTestItem = ({ item }: { item: LabTest }) => (
+    <View style={styles.testItem}>
+      <View style={styles.testInfo}>
+        <Text style={styles.testName}>
+          {LabTestConfig[item.testType as keyof typeof LabTestConfig]?.name || item.testType}
+        </Text>
+        <Text style={[
+          styles.testResult, 
+          { color: item.result === 'positive' ? '#E74C3C' : item.result === 'negative' ? '#27AE60' : '#F39C12' }
+        ]}>
+          Result: {item.result || 'Pending'}
+        </Text>
+        <Text style={styles.testStatus}>Status: {item.status}</Text>
+        {item.technicianName && (
+          <Text style={styles.technician}>By: {item.technicianName}</Text>
         )}
-      </TouchableOpacity>
+      </View>
+      <View style={styles.testDate}>
+        <Text style={styles.dateText}>
+          {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : 'N/A'}
+        </Text>
+      </View>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#2E86C1" />
+        <Text style={styles.loadingText}>Loading lab tests...</Text>
+      </View>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Ionicons name="alert-circle-outline" size={50} color="#E74C3C" />
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {onAddTest && (
-        <View style={styles.header}>
-          <Text style={styles.title}>Lab Tests</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Lab Tests</Text>
+        {onAddTest && (
           <TouchableOpacity style={styles.addButton} onPress={onAddTest}>
             <Ionicons name="add" size={20} color="white" />
             <Text style={styles.addButtonText}>Add Test</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        )}
+      </View>
 
       {labTests.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="flask-outline" size={48} color="#D5D8DC" />
-          <Text style={styles.emptyStateText}>No lab tests yet</Text>
-          <Text style={styles.emptyStateSubtext}>
-            {onAddTest ? 'Add the first lab test for this patient' : 'Lab tests will appear here'}
-          </Text>
+          <Ionicons name="flask-outline" size={50} color="#BDC3C7" />
+          <Text style={styles.emptyStateText}>No lab tests found</Text>
+          {onAddTest && (
+            <TouchableOpacity style={styles.addFirstButton} onPress={onAddTest}>
+              <Text style={styles.addFirstButtonText}>Add First Test</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
           data={labTests}
           renderItem={renderTestItem}
-          keyExtractor={item => item.id!}
-          contentContainerStyle={styles.listContainer}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContent}
         />
       )}
     </View>
@@ -160,6 +155,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#7F8C8D',
+  },
+  errorText: {
+    marginTop: 10,
+    color: '#E74C3C',
+    textAlign: 'center',
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
@@ -174,7 +185,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2C3E50',
-    fontFamily: 'Poppins-Bold',
   },
   addButton: {
     flexDirection: 'row',
@@ -187,9 +197,8 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: 'white',
     fontSize: 14,
-    fontFamily: 'Poppins-Medium',
   },
-  listContainer: {
+  listContent: {
     padding: 15,
   },
   testItem: {
@@ -197,107 +206,45 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  testItemExpanded: {
-    marginBottom: 15,
-  },
-  testHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  testTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  testInfo: {
     flex: 1,
-    gap: 8,
   },
-  testTitle: {
+  testName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#2C3E50',
-    fontFamily: 'Poppins-SemiBold',
-    flex: 1,
-  },
-  testMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 5,
   },
   testResult: {
     fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Poppins-Bold',
+    fontWeight: '500',
+    marginBottom: 3,
   },
-  testDate: {
+  testStatus: {
+    fontSize: 14,
+    color: '#7F8C8D',
+    marginBottom: 3,
+  },
+  technician: {
     fontSize: 12,
     color: '#7F8C8D',
-    fontFamily: 'Poppins-Regular',
+    fontStyle: 'italic',
   },
-  testContent: {
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#ECF0F1',
+  testDate: {
+    alignItems: 'flex-end',
   },
-  testTechnician: {
-    fontSize: 14,
+  dateText: {
+    fontSize: 12,
     color: '#7F8C8D',
-    marginBottom: 10,
-    fontFamily: 'Poppins-Regular',
-  },
-  testValues: {
-    marginBottom: 10,
-  },
-  valuesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2C3E50',
-    marginBottom: 8,
-    fontFamily: 'Poppins-SemiBold',
-  },
-  valueItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-    paddingLeft: 10,
-  },
-  valueLabel: {
-    fontSize: 14,
-    color: '#7F8C8D',
-    fontFamily: 'Poppins-Regular',
-  },
-  value: {
-    fontSize: 14,
-    color: '#2C3E50',
-    fontWeight: '500',
-    fontFamily: 'Poppins-Medium',
-  },
-  notesContainer: {
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#ECF0F1',
-  },
-  notesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2C3E50',
-    marginBottom: 5,
-    fontFamily: 'Poppins-SemiBold',
-  },
-  notesText: {
-    fontSize: 14,
-    color: '#2C3E50',
-    lineHeight: 20,
-    fontFamily: 'Poppins-Regular',
   },
   emptyState: {
     alignItems: 'center',
@@ -309,13 +256,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7F8C8D',
     marginTop: 10,
-    fontFamily: 'Poppins-Medium',
+    textAlign: 'center',
   },
-  emptyStateSubtext: {
+  addFirstButton: {
+    marginTop: 20,
+    backgroundColor: '#8E44AD',
+    padding: 12,
+    borderRadius: 8,
+  },
+  addFirstButtonText: {
+    color: 'white',
     fontSize: 14,
-    color: '#BDC3C7',
-    marginTop: 5,
-    fontFamily: 'Poppins-Regular',
+    fontWeight: '600',
   },
 });
 

@@ -1,11 +1,11 @@
-// components/medical/NotesList.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { Note } from '../../types/Notes';
-import type { IconProps } from '@expo/vector-icons/build/createIconSet';
+import { useAuth } from '../../context/authContext';
+
 interface NotesListProps {
   patientId: string;
   onAddNote: () => void;
@@ -14,33 +14,47 @@ interface NotesListProps {
 const NotesList: React.FC<NotesListProps> = ({ patientId, onAddNote }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!patientId) return;
+    if (!user && !authLoading) {
+      setLoading(false);
+      return;
+    }
 
-    const notesRef = collection(db, 'notes');
-    const q = query(
-      notesRef, 
-      where('patientId', '==', patientId),
-      orderBy('createdAt', 'desc')
-    );
+    if (user) {
+      const q = query(
+        collection(db, 'notes'),
+        where('patientId', '==', patientId),
+        orderBy('createdAt', 'desc')
+      );
+      
+      setLoading(true);
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const notesData: Note[] = [];
+          snapshot.forEach((doc) => {
+            notesData.push({ id: doc.id, ...doc.data() } as Note);
+          });
+          setNotes(notesData);
+          setLoading(false);
+        },
+        (error) => {
+          console.error('Firestore error:', error);
+          setLoading(false);
+          Alert.alert('Error', 'Failed to load notes. Please try again.');
+        }
+      );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notesData: Note[] = [];
-      snapshot.forEach((doc) => {
-        notesData.push({ id: doc.id, ...doc.data() } as Note);
-      });
-      setNotes(notesData);
-    });
-
-    return unsubscribe;
-  }, [patientId]);
+      return () => unsubscribe();
+    }
+  }, [patientId, user, authLoading]);
 
   const toggleExpand = (noteId: string) => {
     setExpandedNoteId(expandedNoteId === noteId ? null : noteId);
   };
-
-
 
   const getPriorityIcon = (priority: string): { name: keyof typeof Ionicons.glyphMap, color: string } => {
     switch (priority) {
@@ -93,6 +107,35 @@ const NotesList: React.FC<NotesListProps> = ({ patientId, onAddNote }) => {
     );
   };
 
+  if (authLoading || loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Patient Notes</Text>
+        </View>
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color="#3498DB" />
+          <Text style={styles.loadingText}>Loading notes...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Patient Notes</Text>
+        </View>
+        <View style={styles.emptyState}>
+          <Ionicons name="lock-closed" size={48} color="#D5D8DC" />
+          <Text style={styles.emptyStateText}>Authentication required</Text>
+          <Text style={styles.emptyStateSubtext}>Please sign in to view notes</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -124,100 +167,98 @@ const NotesList: React.FC<NotesListProps> = ({ patientId, onAddNote }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
-    backgroundColor: 'white',
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#ECF0F1',
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#2C3E50',
-    fontFamily: 'Poppins-Bold',
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#27AE60',
-    padding: 8,
-    borderRadius: 6,
-    gap: 5,
+    backgroundColor: '#3498DB',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   addButtonText: {
     color: 'white',
-    fontSize: 14,
-    fontFamily: 'Poppins-Medium',
+    fontWeight: '600',
+    marginLeft: 4,
   },
   listContainer: {
-    padding: 15,
+    padding: 16,
   },
   noteItem: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    elevation: 2,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ECF0F1',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    elevation: 2,
   },
   noteItemExpanded: {
-    marginBottom: 15,
+    borderColor: '#3498DB',
+    borderWidth: 2,
   },
   noteHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   noteTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: 8,
+    marginRight: 8,
   },
   noteTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#2C3E50',
-    fontFamily: 'Poppins-SemiBold',
-    flex: 1,
+    marginLeft: 8,
   },
   noteMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    flexWrap: 'wrap',
   },
   noteCategory: {
     fontSize: 12,
-    color: '#2E86C1',
-    backgroundColor: '#EBF5FB',
+    fontWeight: '500',
+    color: '#7F8C8D',
+    backgroundColor: '#ECF0F1',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    fontFamily: 'Poppins-Medium',
   },
   noteDoctor: {
     fontSize: 12,
     color: '#7F8C8D',
-    fontFamily: 'Poppins-Regular',
   },
   noteDate: {
     fontSize: 12,
     color: '#7F8C8D',
-    fontFamily: 'Poppins-Regular',
   },
   noteContent: {
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#ECF0F1',
   },
@@ -225,24 +266,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2C3E50',
     lineHeight: 20,
-    fontFamily: 'Poppins-Regular',
   },
   emptyState: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 40,
   },
   emptyStateText: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
     color: '#7F8C8D',
-    marginTop: 10,
-    fontFamily: 'Poppins-Medium',
+    marginTop: 16,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#BDC3C7',
-    marginTop: 5,
-    fontFamily: 'Poppins-Regular',
+    color: '#AAB7B8',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  loadingState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#7F8C8D',
+    fontSize: 16,
   },
 });
 

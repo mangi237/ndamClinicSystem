@@ -1,6 +1,6 @@
 // screens/PatientDetailsScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Patient } from '../types/Patient';
 import NotesList from '../components/medical/NotesList';
@@ -8,13 +8,25 @@ import AddNoteModal from '../components/medical/AddNoteModal';
 import LabTestsList from '../components/medical/LabTestList';
 import LabTestModal from '../components/lab/LabTestModal';
 import { useAuth } from '../context/authContext';
+import { PatientDetailsScreenProps } from '../types/Navigation';
 
-const PatientDetailsScreen = ({ route, navigation }) => {
-  const { patient } = route.params as { patient: Patient };
+const PatientDetailsScreen = ({ route, navigation }: PatientDetailsScreenProps) => {
+  const { patient } = route.params;
   const [notesModalVisible, setNotesModalVisible] = useState(false);
   const [labTestModalVisible, setLabTestModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'notes' | 'lab'>('details');
   const { user } = useAuth();
+  
+  // Use the context user role instead of relying on route params
+  const currentUserRole = user?.role;
+  const canAddLabTests = currentUserRole === 'lab';
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('PatientDetailsScreen - Patient:', patient);
+    console.log('PatientDetailsScreen - Current user role:', currentUserRole);
+    console.log('PatientDetailsScreen - Can add lab tests:', canAddLabTests);
+  }, [currentUserRole]);
 
   const handleNoteAdded = () => {
     setNotesModalVisible(false);
@@ -22,6 +34,7 @@ const PatientDetailsScreen = ({ route, navigation }) => {
 
   const handleLabTestAdded = () => {
     setLabTestModalVisible(false);
+    // Refresh lab tests list if needed
   };
 
   const formatDate = (date: any) => {
@@ -33,8 +46,6 @@ const PatientDetailsScreen = ({ route, navigation }) => {
       return 'Invalid date';
     }
   };
-
-  const canAddLabTests = user?.role === 'lab';
 
   return (
     <View style={styles.container}>
@@ -84,129 +95,90 @@ const PatientDetailsScreen = ({ route, navigation }) => {
       </View>
 
       {/* Content */}
-      {activeTab === 'details' ? (
-        <ScrollView 
-          style={styles.content}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={true}
-        >
-          {/* Basic Information */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Basic Information</Text>
-            <View style={styles.infoGrid}>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Age</Text>
-                <Text style={styles.infoValue}>{patient.age} years</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Gender</Text>
-                <Text style={styles.infoValue}>{patient.gender}</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Phone</Text>
-                <Text style={styles.infoValue}>{patient.phone}</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{patient.email || 'N/A'}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Contact Information */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Contact Information</Text>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Address</Text>
-              <Text style={styles.infoValue}>{patient.address}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Emergency Contact</Text>
-              <Text style={styles.infoValue}>{patient.emergencyContact}</Text>
-            </View>
-            {patient.guardianName && (
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Guardian</Text>
-                <Text style={styles.infoValue}>{patient.guardianName}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Medical Information */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Medical Information</Text>
-            {patient.bloodType && (
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Blood Type</Text>
-                <Text style={styles.infoValue}>{patient.bloodType}</Text>
-              </View>
-            )}
-            
-            {patient.allergies && patient.allergies.length > 0 && (
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Allergies</Text>
-                <Text style={styles.infoValue}>{patient.allergies.join(', ')}</Text>
-              </View>
-            )}
-            
-            {patient.medicalConditions && patient.medicalConditions.length > 0 && (
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Medical Conditions</Text>
-                <Text style={styles.infoValue}>{patient.medicalConditions.join(', ')}</Text>
-              </View>
-            )}
-            
-            {patient.currentMedications && patient.currentMedications.length > 0 && (
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Current Medications</Text>
-                <Text style={styles.infoValue}>{patient.currentMedications.join(', ')}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Insurance Information */}
-          {(patient.insuranceProvider || patient.insuranceId) && (
+      <View style={styles.contentContainer}>
+        {activeTab === 'details' ? (
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={true}
+          >
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Insurance Information</Text>
-              {patient.insuranceProvider && (
+              <Text style={styles.sectionTitle}>Personal Information</Text>
+              <View style={styles.infoGrid}>
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Provider</Text>
-                  <Text style={styles.infoValue}>{patient.insuranceProvider}</Text>
+                  <Text style={styles.infoLabel}>Phone</Text>
+                  <Text style={styles.infoValue}>{patient.phone || 'N/A'}</Text>
                 </View>
-              )}
-              {patient.insuranceId && (
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Policy Number</Text>
-                  <Text style={styles.infoValue}>{patient.insuranceId}</Text>
+                  <Text style={styles.infoLabel}>Emergency Contact</Text>
+                  <Text style={styles.infoValue}>{patient.emergencyContact || 'N/A'}</Text>
                 </View>
-              )}
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Gender</Text>
+                  <Text style={styles.infoValue}>{patient.gender || 'N/A'}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Date of Birth</Text>
+                  <Text style={styles.infoValue}>{formatDate(patient.dateOfBirth)}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Address</Text>
+                  <Text style={styles.infoValue}>{patient.address || 'N/A'}</Text>
+                </View>
+              </View>
             </View>
-          )}
 
-          {/* Timestamps */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Record Information</Text>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Created</Text>
-              <Text style={styles.infoValue}>{formatDate(patient.createdAt)}</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Medical Information</Text>
+              <View style={styles.infoGrid}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Blood Type</Text>
+                  <Text style={styles.infoValue}>{patient.bloodType || 'N/A'}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Allergies</Text>
+                  <Text style={styles.infoValue}>{patient.allergies || 'None reported'}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Medical Conditions</Text>
+                  <Text style={styles.infoValue}>{patient.conditions || 'None reported'}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Medications</Text>
+                  <Text style={styles.infoValue}>{patient.medications || 'None reported'}</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Last Updated</Text>
-              <Text style={styles.infoValue}>{formatDate(patient.updatedAt)}</Text>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Additional Information</Text>
+              <View style={styles.infoGrid}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Date Added</Text>
+                  <Text style={styles.infoValue}>{formatDate(patient.createdAt)}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Last Updated</Text>
+                  <Text style={styles.infoValue}>{formatDate(patient.updatedAt)}</Text>
+                </View>
+              </View>
             </View>
+          </ScrollView>
+        ) : activeTab === 'notes' ? (
+          <NotesList 
+            patientId={patient.id!} 
+            onAddNote={() => setNotesModalVisible(true)} 
+          />
+        ) : (
+          <View style={styles.tabContent}>
+            <LabTestsList 
+              patientId={patient.id!} 
+              onAddTest={() => setLabTestModalVisible(true)} // Always pass this
+              userRole={user?.role}
+            />
           </View>
-        </ScrollView>
-      ) : activeTab === 'notes' ? (
-        <NotesList 
-          patientId={patient.id!} 
-          onAddNote={() => setNotesModalVisible(true)} 
-        />
-      ) : (
-        <LabTestsList 
-          patientId={patient.id!} 
-          onAddTest={canAddLabTests ? () => setLabTestModalVisible(true) : undefined}
-        />
-      )}
+        )}
+      </View>
 
       <AddNoteModal
         visible={notesModalVisible}
@@ -222,9 +194,11 @@ const PatientDetailsScreen = ({ route, navigation }) => {
         patientId={patient.id!}
         patientName={patient.name}
       />
+
+
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -237,6 +211,11 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: 'white',
     marginBottom: 1,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   profileImage: {
     width: 80,
@@ -300,16 +279,28 @@ const styles = StyleSheet.create({
     color: '#2E86C1',
     fontFamily: 'Poppins-SemiBold',
   },
-  content: {
+  contentContainer: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40, // Extra padding for better scrolling
+    paddingBottom: 40,
+  },
+  tabContent: {
+    flex: 1,
   },
   section: {
     backgroundColor: 'white',
     marginBottom: 10,
     padding: 20,
+    borderRadius: 8,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   sectionTitle: {
     fontSize: 18,
@@ -324,7 +315,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   infoItem: {
-    width: '100%',
+    width: '48%',
     marginBottom: 15,
   },
   infoLabel: {

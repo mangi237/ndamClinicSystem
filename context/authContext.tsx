@@ -1,11 +1,8 @@
-// context/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
-import { auth, db,  } from '../services/firebase';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { signInWithEmailAndPassword, signOut, User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '../services/firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { User } from '../types/User';
-// import firebase from 'firebase/compat/app';
-// import { db, auth } from '../services/firebase'; 
 
 interface AuthContextType {
   user: User | null;
@@ -24,46 +21,65 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
- const login = async (code: string) => {
-  try {
-    // 1. Create a reference to the users collection
-    const usersRef = collection(db, 'users');
-    
-    // 2. Create a query to find users with the matching code
-    const q = query(usersRef, where('code', '==', code));
-    
-    // 3. Execute the query
-    const querySnapshot = await getDocs(q);
-    
-    // 4. Check if any documents were found
-    if (!querySnapshot.empty) {
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
-      return { success: true, role: userData.role };
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true); // Start with true for initial auth check
+
+  const login = async (code: string) => {
+    try {
+      setLoading(true);
+      
+      // 1. Create a reference to the users collection
+      const usersRef = collection(db, 'users');
+      
+      // 2. Create a query to find users with the matching code
+      const q = query(usersRef, where('code', '==', code));
+      
+      // 3. Execute the query
+      const querySnapshot = await getDocs(q);
+      
+      // 4. Check if any documents were found
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data();
+        
+        // Store user data in state
+        setUser({
+          id: userDoc.id,
+          ...userData
+        } as User);
+        
+        return { success: true, role: userData.role };
+      }
+      
+      return { success: false, error: 'Invalid access code' };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: 'Login failed' };
+    } finally {
+      setLoading(false);
     }
-    
-    return { success: false, error: 'Invalid access code' };
-  } catch (error) {
-    console.error('Login error:', error);
-    return { success: false, error: 'Login failed' };
-  }
-};
+  };
+
   const logout = async () => {
     try {
+      setLoading(true);
       await signOut(auth);
       setUser(null);
     } catch (error) {
       console.error('Error signing out: ', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         // If user is logged in via Firebase Auth, find their data in Firestore
         try {
@@ -80,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setUser(null);
       }
+      setLoading(false);
     });
 
     return unsubscribe;

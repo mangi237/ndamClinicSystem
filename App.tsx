@@ -86,65 +86,13 @@ export default function App() {
               },
             }}
           >
-            <Stack.Screen 
-              name="CategorySelection" 
-              component={CategorySelection} 
-              options={{
-                gestureEnabled: false,
-              }}
-            />
-            <Stack.Screen 
-  name="PatientDetails" 
-  component={PatientDetailsScreen}
-  options={{
-    title: 'Patient Details',
-    headerShown: true,
-  }}
-/>
-            <Stack.Screen 
-              name="LoginScreen" 
-              component={LoginScreen} 
-              options={{
-                gestureDirection: 'horizontal-inverted',
-              }}
-            />
-            <Stack.Screen 
-              name="AdminDashboard" 
-              component={AdminDashboard} 
-              options={{
-                gestureEnabled: false,
-              }}
-            />
-            <Stack.Screen 
-              name="DoctorDashboard" 
-              component={DoctorDashboard} 
-              options={{
-                gestureEnabled: false,
-              }}
-            />
-            <Stack.Screen 
-              name="NurseDashboard" 
-              component={NurseDashboard} 
-              options={{
-                gestureEnabled: false,
-              }}
-            />
-            <Stack.Screen 
-              name="LabTechDashboard" 
-              component={LabTechDashboard} 
-              options={{
-                gestureEnabled: false,
-                headerShown: false,
-              }}
-
-            />
-            <Stack.Screen 
-              name="PharmacistDashboard" 
-              component={PharmacistDashboard} 
-              options={{
-                gestureEnabled: false,
-              }}
-            />
+          <Stack.Screen name="CategorySelection" component={CategorySelection} />
+  <Stack.Screen name="LoginScreen" component={LoginScreen} />
+  <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
+  <Stack.Screen name="DoctorDashboard" component={DoctorDashboard} />
+  <Stack.Screen name="NurseDashboard" component={NurseDashboard} />
+  <Stack.Screen name="LabTechDashboard" component={LabTechDashboard} />
+  <Stack.Screen name="PharmacistDashboard" component={PharmacistDashboard} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>
