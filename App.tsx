@@ -66,7 +66,7 @@ export default function App() {
       <AuthProvider>
         <NavigationContainer>
           <Stack.Navigator 
-           id={undefined}
+          //  id={undefined}
             initialRouteName="CategorySelection" 
             screenOptions={{ 
               headerShown: false,
@@ -98,4 +98,5 @@ export default function App() {
       </AuthProvider>
     </View>
   );
+
 }

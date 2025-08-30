@@ -6,7 +6,7 @@ import { db } from '../../services/firebase';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { LabTestConfig } from '../../types/LabTest';
 
-interface LabTest {
+interface LabTest { 
   id: string;
   testType: string;
   result: string;

@@ -11,7 +11,7 @@ const Tab = createBottomTabNavigator();
 const AdminDashboard : React.FC= () => {
   return (
     <Tab.Navigator
-    id={undefined}
+    
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;

@@ -5,13 +5,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { LineChart, BarChart } from 'react-native-chart-kit';
+import AppointmentList from '../medical/AppointmentList';
 
 const Overview = () => {
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalDoctors: 0,
     totalNurses: 0,
-    appointmentsToday: 0,
+totalAppointments: 0,
     revenue: 0,
   });
 
@@ -30,6 +31,12 @@ const Overview = () => {
       let totalDoctors = 0;
       let totalNurses = 0;
       
+      const appointmentSnapshot = await getDocs(collection(db, 'appointments'));
+      let totalAppointments = 0;
+    appointmentSnapshot.forEach((doc) => {
+      const appointmentData = doc.data();
+      totalAppointments++;
+    });
       staffSnapshot.forEach((doc) => {
         const staffData = doc.data();
         if (staffData.role === 'doctor') totalDoctors++;
@@ -41,7 +48,7 @@ const Overview = () => {
         totalPatients,
         totalDoctors,
         totalNurses,
-        appointmentsToday: 15,
+        totalAppointments,
         revenue: 12500,
       });
     } catch (error) {
@@ -120,8 +127,8 @@ const Overview = () => {
         
         <View style={styles.statCard}>
           <Ionicons name="calendar" size={30} color="#E67E22" />
-          <Text style={styles.statNumber}>{stats.appointmentsToday}</Text>
-          <Text style={styles.statLabel}>Today's Appointments</Text>
+          <Text style={styles.statNumber}>{stats.totalAppointments}</Text>
+          <Text style={styles.statLabel}>Total Appointments</Text>
         </View>
       </View>
       

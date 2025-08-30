@@ -46,10 +46,7 @@ const PatientList: React.FC = () => {
   };
 
   const handlePatientPress = (patient: Patient) => {
-    navigation.navigate('PatientDetails', { 
-      patient: patient,
-      // userRole: user?.role 
-    });
+    navigation.navigate('PatientDetails', { patient });
   };
 
   const renderPatientItem = ({ item }: { item: Patient }) => (

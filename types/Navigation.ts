@@ -1,5 +1,6 @@
 // types/navigation.ts
 import { StackScreenProps } from '@react-navigation/stack';
+import { Patient } from './Patient';
 
 export type RootStackParamList = {
   CategorySelection: undefined;

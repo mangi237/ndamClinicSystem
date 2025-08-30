@@ -9,13 +9,17 @@ import LabTestsList from '../components/medical/LabTestList';
 import LabTestModal from '../components/lab/LabTestModal';
 import { useAuth } from '../context/authContext';
 import { PatientDetailsScreenProps } from '../types/Navigation';
-
-const PatientDetailsScreen = ({ route, navigation }: PatientDetailsScreenProps) => {
-  const { patient } = route.params;
+import VitalsList from '../components/nurse/VitalList';
+import Appointments from '../components/medical/Appointments';
+import Medications from '../components/medical/Medications';
+import VitalsMonitoring from '../components/nurse/vitalMonitoring';
+const PatientDetailsScreen = ({ patient }: { patient: Patient }) => {
+  // ...existing code...  const { patient } = route.params;
   const [notesModalVisible, setNotesModalVisible] = useState(false);
   const [labTestModalVisible, setLabTestModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'notes' | 'lab'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'notes' | 'lab' | 'vitals' | 'appointments' | 'medications'>('details');
   const { user } = useAuth();
+  const [subTab , setSubTab] = useState<'vitals' | 'appointments' | 'medications'>('vitals');
   
   // Use the context user role instead of relying on route params
   const currentUserRole = user?.role;
@@ -68,36 +72,23 @@ const PatientDetailsScreen = ({ route, navigation }: PatientDetailsScreenProps) 
 
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'details' && styles.tabActive]}
-          onPress={() => setActiveTab('details')}
-        >
-          <Text style={[styles.tabText, activeTab === 'details' && styles.tabTextActive]}>
-            Details
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'notes' && styles.tabActive]}
-          onPress={() => setActiveTab('notes')}
-        >
-          <Text style={[styles.tabText, activeTab === 'notes' && styles.tabTextActive]}>
-            Notes
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'lab' && styles.tabActive]}
-          onPress={() => setActiveTab('lab')}
-        >
-          <Text style={[styles.tabText, activeTab === 'lab' && styles.tabTextActive]}>
-            Lab Tests
-          </Text>
-        </TouchableOpacity>
+        {(['details', 'notes', 'lab'] as const).map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Content */}
-      <View style={styles.contentContainer}>
+      <ScrollView style={styles.contentContainer}>
         {activeTab === 'details' ? (
           <ScrollView 
+          alwaysBounceVertical
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={true}
@@ -127,6 +118,9 @@ const PatientDetailsScreen = ({ route, navigation }: PatientDetailsScreenProps) 
                 </View>
               </View>
             </View>
+      
+
+       
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Medical Information</Text>
@@ -139,14 +133,14 @@ const PatientDetailsScreen = ({ route, navigation }: PatientDetailsScreenProps) 
                   <Text style={styles.infoLabel}>Allergies</Text>
                   <Text style={styles.infoValue}>{patient.allergies || 'None reported'}</Text>
                 </View>
-                <View style={styles.infoItem}>
+                {/* <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Medical Conditions</Text>
-                  <Text style={styles.infoValue}>{patient.conditions || 'None reported'}</Text>
+                  <Text style={styles.infoValue}>{' check patient medications to see medication that has been taking '}</Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Medications</Text>
                   <Text style={styles.infoValue}>{patient.medications || 'None reported'}</Text>
-                </View>
+                </View> */}
               </View>
             </View>
 
@@ -169,7 +163,7 @@ const PatientDetailsScreen = ({ route, navigation }: PatientDetailsScreenProps) 
             patientId={patient.id!} 
             onAddNote={() => setNotesModalVisible(true)} 
           />
-        ) : (
+        ) : activeTab === 'lab' ? (
           <View style={styles.tabContent}>
             <LabTestsList 
               patientId={patient.id!} 
@@ -177,8 +171,8 @@ const PatientDetailsScreen = ({ route, navigation }: PatientDetailsScreenProps) 
               userRole={user?.role}
             />
           </View>
-        )}
-      </View>
+        ): null }
+      </ScrollView>
 
       <AddNoteModal
         visible={notesModalVisible}
@@ -194,7 +188,7 @@ const PatientDetailsScreen = ({ route, navigation }: PatientDetailsScreenProps) 
         patientId={patient.id!}
         patientName={patient.name}
       />
-
+ 
 
     </View>
   );

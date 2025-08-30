@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import PatientList from '../../components/medical/PatientList';
 import PatientDetailsScreen from '../../screens/PatientDetailsScreen';
+import VitalsMonitoring from '../../components/nurse/vitalMonitoring';
 
 const Stack = createStackNavigator();
 
@@ -48,6 +49,14 @@ const DoctorDashboard = () => {
           headerShown: true,
         }}
       />
+      <Stack.Screen 
+        name="VitalsMonitoring" 
+        component={VitalsMonitoring}
+        options={{
+          title: 'Lab Test',
+          headerShown: true,
+        }}
+        />
     </Stack.Navigator>
   );
 };

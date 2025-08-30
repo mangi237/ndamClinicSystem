@@ -1,10 +1,5 @@
-import React from "react";
-// import {Text} from Reac
-import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-const Appointments = () => {
-return (
-    <Text>Appointments</Text>
-);
-}
-
+import { Text } from "react-native-animatable";
+const Appointments = ({ patientId }: { patientId: string }) => {
+  return <Text>Appointments</Text>;
+};
 export default Appointments;

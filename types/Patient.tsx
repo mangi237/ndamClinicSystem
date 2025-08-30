@@ -1,8 +1,13 @@
 // types/Patient.ts
+import { Vital } from './Vitals';
+import { Medication } from './Medication';
+import { Appointment } from './Appointment';
+
 export interface Patient {
   id?: string;
   patientId: string;
   name: string;
+  dateOfBirth: string;
   age: number;
   gender: 'male' | 'female' | 'other';
   phone: string;
@@ -20,6 +25,9 @@ export interface Patient {
   profileImage?: string; // URL for patient image
   createdAt: Date;
   updatedAt: Date;
+   vitals?: Vital[];
+  medications?: Medication[];
+  appointments?: Appointment[];
 }
 
 export interface PatientCreateData {

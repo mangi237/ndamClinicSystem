@@ -352,6 +352,7 @@ const AddPatientModal: React.FC<AddPatientModalProps> = ({
                 onChangeText={(value) => setFormData(prev => ({ ...prev, insuranceId: value }))}
               />
             </View>
+            
 
             <TouchableOpacity 
               style={[styles.saveButton, loading && styles.saveButtonDisabled]}
