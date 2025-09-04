@@ -3,7 +3,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'doctor' | 'nurse' | 'lab' | 'pharmacy';
+  role: 'admin' | 'receptionist'  | 'lab' | 'pharmacy' | 'cashier' | 'analyzer';
   department?: string;
   code: string;
   createdAt?: Date;
@@ -14,6 +14,7 @@ export interface User {
   licenseNumber?: string; // For medical staff
   address?: string;
   emergencyContact?: string;
+
   profileImage?: string;
   permissions?: string[]; // Specific permissions for fine-grained access control
 }
@@ -22,11 +23,12 @@ export interface User {
 export interface UserCreateData {
   name: string;
   email: string;
-  role: 'admin' | 'doctor' | 'nurse' | 'lab' | 'pharmacy';
+  role: 'admin' | 'receptionist'  | 'lab' | 'pharmacy' | 'cashier' | 'analyzer';
   department?: string;
   code: string;
   phoneNumber?: string;
   specialization?: string;
+
   licenseNumber?: string;
   address?: string;
   emergencyContact?: string;
@@ -38,7 +40,7 @@ export interface UserCreateData {
 export interface UserUpdateData {
   name?: string;
   email?: string;
-  role?: 'admin' | 'doctor' | 'nurse' | 'lab' | 'pharmacy';
+  role?: 'admin' | 'receptionist'  | 'lab' | 'pharmacy' | 'cashier' | 'analyzer';
   department?: string;
   code?: string;
   phoneNumber?: string;
@@ -49,6 +51,7 @@ export interface UserUpdateData {
   profileImage?: string;
   isActive?: boolean;
   permissions?: string[];
+  
 }
 
 // User login credentials

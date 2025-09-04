@@ -1,5 +1,4 @@
-// screens/LoginScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
@@ -8,7 +7,9 @@ import { useAuth } from '../../context/authContext';
 const LoginScreen = ({ navigation, route }) => {
   const [code, setCode] = useState('');
   const { login, loading } = useAuth();
-  const { role } = route.params;
+  
+  // Provide a default value for role in case it's not passed
+  const role = route.params?.role || '';
 
   const handleLogin = async () => {
     if (!code) {
@@ -20,21 +21,25 @@ const LoginScreen = ({ navigation, route }) => {
     
     if (result.success) {
       console.log('Login Results', result)
+      // Use the role from the login result, which is more reliable than route.params
       switch (result.role) {
         case 'admin':
           navigation.navigate('AdminDashboard');
           break;
-        case 'doctor':
-          navigation.navigate('DoctorDashboard');
-          break;
-        case 'nurse':
-          navigation.navigate('NurseDashboard');
+       case 'receptionist':
+          navigation.navigate('ReceptionistDashboard');
           break;
         case 'lab':
           navigation.navigate('LabTechDashboard');
           break;
         case 'pharmacy':
           navigation.navigate('PharmacistDashboard');
+          break;
+        case 'cashier':
+          navigation.navigate('CashierDashboard');
+          break;
+        case 'analyzer':
+          navigation.navigate('AnalyzerDashboard');
           break;
         default:
           Alert.alert('Error', 'Invalid role');
@@ -48,7 +53,9 @@ const LoginScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <Animatable.View animation="fadeInDown" duration={1000} style={styles.header}>
         <Text style={styles.headerText}>NDAM Clinic</Text>
-        <Text style={styles.subHeaderText}>Enter Your Access Code</Text>
+        <Text style={styles.subHeaderText}>
+          Enter Your Access Code for {role.charAt(0).toUpperCase() + role.slice(1)}
+        </Text>
       </Animatable.View>
       
       <Animatable.View animation="fadeInUp" duration={1000} style={styles.formContainer}>

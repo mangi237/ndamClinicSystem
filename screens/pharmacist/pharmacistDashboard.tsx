@@ -1,545 +1,463 @@
+// components/pharmacy/PharmacyDashboard.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, where } from 'firebase/firestore';
-import { db, auth } from '../../services/firebase';
-import { Pharmacy, MedicationAvailable } from '../../types/Pharmacy';
+import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, getDocs } from 'firebase/firestore';
+import { db } from '../../services/firebase';
+import { useAuth } from '../../context/authContext';
+import { User } from '../../types/User';
 
-const PharmacistDashboard = () => {
-  const [pharmacy, setPharmacy] = useState<Pharmacy | null>(null);
-  const [medications, setMedications] = useState<MedicationAvailable[]>([]);
-  const [recentSales, setRecentSales] = useState<any[]>([]);
-  const [showSellModal, setShowSellModal] = useState(false);
+interface Reagent {
+  id?: string;
+  name: string;
+  description: string;
+  quantity: number;
+  maxCapacity: number;
+  measurementUnit: 'ml' | 'pieces' | 'cups';
+  percentage: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface Distribution {
+  id?: string;
+  reagentId: string;
+  reagentName: string;
+  quantity: number;
+  technicianId: string;
+  technicianName: string;
+  distributedBy: string;
+  distributedAt: Date;
+}
+
+const PharmacyDashboard = () => {
+  const [reagents, setReagents] = useState<Reagent[]>([]);
+  const [technicians, setTechnicians] = useState<User[]>([]);
+  const [distributions, setDistributions] = useState<Distribution[]>([]);
+  const [showDistributionModal, setShowDistributionModal] = useState(false);
   const [showRestockModal, setShowRestockModal] = useState(false);
-  const [selectedMedication, setSelectedMedication] = useState<MedicationAvailable | null>(null);
-  const [sellQuantity, setSellQuantity] = useState('');
-  const [soldTo, setSoldTo] = useState('');
-  const [prescription, setPrescription] = useState('');
-  const [newMedication, setNewMedication] = useState({
+  const [selectedReagent, setSelectedReagent] = useState<Reagent | null>(null);
+  const [selectedTechnician, setSelectedTechnician] = useState<User | null>(null);
+  const [distributionQty, setDistributionQty] = useState('');
+  const [userCode, setUserCode] = useState('');
+  const [newReagent, setNewReagent] = useState({
     name: '',
     description: '',
-    price: 0,
-    quantityStock: 0,
+    quantity: 0,
+    maxCapacity: 100,
+    measurementUnit: 'ml' as 'ml' | 'pieces' | 'cups',
   });
-  const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'year'>('week');
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
+  const { user } = useAuth();
 
-  // Fetch pharmacy data
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
 
-    const q = query(collection(db, 'pharmacies'), where('email', '==', user.email));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        const pharmacyData = { 
-          id: snapshot.docs[0].id, 
-          ...snapshot.docs[0].data() 
-        } as Pharmacy;
-        setPharmacy(pharmacyData);
-        
-        // Fetch medications for this pharmacy
-        const medsQuery = query(
-          collection(db, 'medications'),
-          where('pharmacyId', '==', pharmacyData.id),
-          orderBy('createdAt', 'desc')
-        );
-        
-        const medUnsubscribe = onSnapshot(medsQuery, (medSnapshot) => {
-          const medsData = medSnapshot.docs.map(doc => ({ 
-            id: doc.id, 
-            ...doc.data() 
-          } as MedicationAvailable));
-          setMedications(medsData);
-        });
-        
-        return () => medUnsubscribe();
-      } else {
-        // Create a new pharmacy if one doesn't exist
-        createNewPharmacy(user);
-      }
-      setLoading(false);
+    // Fetch reagents
+    const reagentsQuery = query(collection(db, 'reagents'));
+    const reagentsUnsubscribe = onSnapshot(reagentsQuery, (snapshot) => {
+      const reagentData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        percentage: calculatePercentage(doc.data().quantity, doc.data().maxCapacity)
+      })) as Reagent[];
+      setReagents(reagentData);
     });
 
-    return () => unsubscribe();
-  }, []);
+    // Fetch lab technicians
+    const techniciansQuery = query(
+      collection(db, 'users'),
+      where('role', '==', 'lab')
+    );
+    const techniciansUnsubscribe = onSnapshot(techniciansQuery, (snapshot) => {
+      const technicianData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as User[];
+      setTechnicians(technicianData);
+    });
 
-  // Auto-calculation for total price
-  useEffect(() => {
-    if (selectedMedication && sellQuantity) {
-      const quantity = parseInt(sellQuantity);
-      // Calculation happens in the render
-    }
-  }, [sellQuantity, selectedMedication]);
+    // Fetch distributions
+    const distributionsQuery = query(collection(db, 'distributions'));
+    const distributionsUnsubscribe = onSnapshot(distributionsQuery, (snapshot) => {
+      const distributionData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Distribution[];
+      setDistributions(distributionData);
+    });
 
-  const createNewPharmacy = async (user: any) => {
-    try {
-      const newPharmacy = {
-        name: `${user.displayName || 'Pharmacist'}'s Pharmacy`,
-        address: '',
-        phone: '',
-        email: user.email,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      
-      const docRef = await addDoc(collection(db, 'pharmacies'), newPharmacy);
-      setPharmacy({ id: docRef.id, ...newPharmacy });
-    } catch (error) {
-      console.error('Error creating pharmacy:', error);
-      Alert.alert('Error', 'Failed to create pharmacy profile');
-    }
+    return () => {
+      reagentsUnsubscribe();
+      techniciansUnsubscribe();
+      distributionsUnsubscribe();
+    };
+  }, [user]);
+
+  const calculatePercentage = (quantity: number, maxCapacity: number): number => {
+    return Math.round((quantity / maxCapacity) * 100);
   };
 
-  // Fetch recent sales
-  useEffect(() => {
-    if (!pharmacy?.id) return;
-
-    const salesQuery = query(
-      collection(db, 'sales'),
-      where('pharmacyId', '==', pharmacy.id),
-      orderBy('createdAt', 'desc')
-    );
+  const verifyCode = async (): Promise<boolean> => {
+    if (!user) return false;
     
-    const unsubscribe = onSnapshot(salesQuery, (snapshot) => {
-      const salesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setRecentSales(salesData);
-    });
+    try {
+      const userDoc = await getDocs(query(
+        collection(db, 'users'),
+        where('email', '==', user.email)
+      ));
+      
+      if (!userDoc.empty) {
+        const userData = userDoc.docs[0].data();
+        return userData.code === userCode;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error verifying code:', error);
+      return false;
+    }
+  };
+  const formatDate = (date: any): string => {
+  if (date && typeof date.toDate === 'function') {
+    // It's a Firestore Timestamp
+    return date.toDate().toLocaleDateString();
+  } else if (date instanceof Date) {
+    // It's already a Date object
+    return date.toLocaleDateString();
+  }
+  return 'Unknown date';
+};
 
-    return () => unsubscribe();
-  }, [pharmacy]);
 
-  const handleSellMedication = async () => {
-    if (!selectedMedication || !sellQuantity || !soldTo ) {
-      Alert.alert('Error', 'Please fill all required fields');
+  const distributeReagent = async () => {
+    if (!selectedReagent || !selectedTechnician || !distributionQty) {
+      Alert.alert('Error', 'Please fill all fields');
       return;
     }
 
-    const quantity = parseInt(sellQuantity);
+    const quantity = parseFloat(distributionQty);
     if (isNaN(quantity) || quantity <= 0) {
       Alert.alert('Error', 'Please enter a valid quantity');
       return;
     }
 
-    if (quantity > selectedMedication.quantityStock) {
+    if (quantity > selectedReagent.quantity) {
       Alert.alert('Error', 'Not enough stock available');
       return;
     }
 
-    setProcessing(true);
+    const isValidCode = await verifyCode();
+    if (!isValidCode) {
+      Alert.alert('Error', 'Invalid security code');
+      return;
+    }
+
     try {
-      // Update medication stock
-      const updatedQuantity = selectedMedication.quantityStock - quantity;
-      await updateDoc(doc(db, 'medications', selectedMedication.id!), {
-        quantityStock: updatedQuantity,
-        quatintySold: (selectedMedication.quatintySold || 0) + quantity,
-        quantityRemaining: updatedQuantity,
+      // Update reagent quantity
+      const newQuantity = selectedReagent.quantity - quantity;
+      await updateDoc(doc(db, 'reagents', selectedReagent.id!), {
+        quantity: newQuantity,
+        percentage: calculatePercentage(newQuantity, selectedReagent.maxCapacity),
         updatedAt: new Date(),
       });
 
-      // Record sale
-      await addDoc(collection(db, 'sales'), {
-        pharmacyId: pharmacy.id,
-        medicationId: selectedMedication.id,
-        medicationName: selectedMedication.name,
-        quantity,
-        prescription,
-        price: selectedMedication.price * quantity,
-        soldTo,
-        soldBy: auth.currentUser?.displayName || 'Pharmacist',
-        createdAt: new Date(),
+      // Record distribution
+      await addDoc(collection(db, 'distributions'), {
+        reagentId: selectedReagent.id,
+        reagentName: selectedReagent.name,
+        quantity: quantity,
+        technicianId: selectedTechnician.id,
+        technicianName: selectedTechnician.name,
+        distributedBy: user?.name,
+        distributedAt: new Date(),
       });
 
-      // Reset form and close modal FIRST
-      setSelectedMedication(null);
-      setSellQuantity('');
-      setSoldTo('');
-      setPrescription('');
-      setSearchQuery('');
-      setShowSellModal(false);
-      
-      // THEN show success message
-      Alert.alert('Success', 'Sale recorded successfully!');
+      Alert.alert('Success', 'Reagent distributed successfully!');
+      setShowDistributionModal(false);
+      resetDistributionForm();
     } catch (error) {
-      console.error('Error selling medication:', error);
-      Alert.alert('Error', 'Failed to record sale');
-    } finally {
-      setProcessing(false);
+      console.error('Error distributing reagent:', error);
+      Alert.alert('Error', 'Failed to distribute reagent');
     }
   };
 
-  const handleRestock = async () => {
-    if (!pharmacy?.id) {
-      Alert.alert('Error', 'Pharmacy information not loaded yet. Please try again.');
+  const restockReagent = async (isNew: boolean) => {
+    if (!newReagent.name || newReagent.quantity <= 0) {
+      Alert.alert('Error', 'Please fill all required fields');
       return;
     }
 
-    if (!newMedication.name || newMedication.price <= 0 || newMedication.quantityStock <= 0) {
-      Alert.alert('Error', 'Please fill all fields with valid values');
+    const isValidCode = await verifyCode();
+    if (!isValidCode) {
+      Alert.alert('Error', 'Invalid security code');
       return;
     }
 
-    setProcessing(true);
     try {
-      await addDoc(collection(db, 'medications'), {
-        ...newMedication,
-        pharmacyId: pharmacy.id,
-        quatintySold: 0,
-        quantityRemaining: newMedication.quantityStock,
-        soldBy: auth.currentUser?.displayName || 'Pharmacist',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      if (isNew) {
+        // Add new reagent
+        await addDoc(collection(db, 'reagents'), {
+          ...newReagent,
+          percentage: calculatePercentage(newReagent.quantity, newReagent.maxCapacity),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      } else if (selectedReagent) {
+        // Restock existing reagent
+        await updateDoc(doc(db, 'reagents', selectedReagent.id!), {
+          quantity: selectedReagent.quantity + newReagent.quantity,
+          percentage: calculatePercentage(selectedReagent.quantity + newReagent.quantity, selectedReagent.maxCapacity),
+          updatedAt: new Date(),
+        });
+      }
 
-      // Reset form and close modal FIRST
-      setNewMedication({
-        name: '',
-        description: '',
-        price: 0,
-        quantityStock: 0,
-      });
+      Alert.alert('Success', isNew ? 'Reagent added successfully!' : 'Reagent restocked successfully!');
       setShowRestockModal(false);
-      
-      // THEN show success message
-      Alert.alert('Success', 'Medication restocked successfully!');
+      resetRestockForm();
     } catch (error) {
-      console.error('Error restocking medication:', error);
-      Alert.alert('Error', 'Failed to restock medication');
-    } finally {
-      setProcessing(false);
+      console.error('Error restocking reagent:', error);
+      Alert.alert('Error', 'Failed to restock reagent');
     }
   };
 
-  // Filter medications based on search
-  const filteredMedications = medications.filter(med =>
-    med.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const resetDistributionForm = () => {
+    setSelectedReagent(null);
+    setSelectedTechnician(null);
+    setDistributionQty('');
+    setUserCode('');
+  };
+
+  const resetRestockForm = () => {
+    setNewReagent({
+      name: '',
+      description: '',
+      quantity: 0,
+      maxCapacity: 100,
+      measurementUnit: 'ml',
+    });
+    setUserCode('');
+  };
+
+  const renderReagentItem = ({ item }: { item: Reagent }) => (
+    <View style={styles.reagentItem}>
+      <View style={styles.reagentInfo}>
+        <Text style={styles.reagentName}>{item.name}</Text>
+        <Text style={styles.reagentDescription}>{item.description}</Text>
+        <View style={styles.stockInfo}>
+          <Text style={styles.stockText}>
+            {item.quantity} {item.measurementUnit}
+          </Text>
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill,
+                  { width: `${item.percentage}%` }
+                ]} 
+              />
+            </View>
+            <Text style={styles.percentageText}>{item.percentage}%</Text>
+          </View>
+        </View>
+      </View>
+      <TouchableOpacity 
+        style={styles.distributeButton}
+        onPress={() => {
+          setSelectedReagent(item);
+          setShowDistributionModal(true);
+        }}
+      >
+        <Ionicons name="send" size={20} color="white" />
+        <Text style={styles.distributeButtonText}>Distribute</Text>
+      </TouchableOpacity>
+    </View>
   );
 
-  // Calculate dashboard metrics
-  const totalStock = medications.reduce((sum, med) => sum + med.quantityStock, 0);
-  const totalSold = medications.reduce((sum, med) => sum + (med.quatintySold || 0), 0);
-  const totalRevenue = recentSales.reduce((sum, sale) => sum + (sale.price || 0), 0);
-  const mostSoldMedication = medications.length > 0 
-    ? medications.reduce((prev, current) => 
-        (prev.quatintySold || 0) > (current.quatintySold || 0) ? prev : current
-      )
-    : null;
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E74C3C" />
-        <Text>Loading pharmacy data...</Text>
-      </View>
-    );
-  }
+  const renderDistributionItem = ({ item }: { item: Distribution }) => (
+    <View style={styles.distributionItem}>
+      <Text style={styles.distributionText}>{item.reagentName}</Text>
+      <Text style={styles.distributionDetails}>
+        {item.quantity} units to {item.technicianName}
+      </Text>
+      <Text style={styles.distributionDate}>
+{formatDate(item.distributedAt)}
+      </Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Pharmacist Portal</Text>
+        <Text style={styles.title}>Stock Manager</Text>
         <TouchableOpacity 
-          style={styles.restockButton} 
-          onPress={() => {
-            // if (!pharmacy) {
-            //   Alert.alert('Error', 'Pharmacy data not loaded yet');
-            //   return;
-            // }
-            setShowRestockModal(true);
-          }}
-          disabled={processing}
+          style={styles.restockButton}
+          onPress={() => setShowRestockModal(true)}
         >
-          <Ionicons name="add-circle" size={20} color="white" />
+          <Ionicons name="add" size={20} color="white" />
           <Text style={styles.restockButtonText}>Restock</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView>
-        {/* Dashboard */}
-        <View style={styles.dashboard}>
-          <Text style={styles.sectionTitle}>Inventory Overview</Text>
-          
-          <View style={styles.metricsContainer}>
-            <View style={styles.metricCard}>
-              <Ionicons name="medical" size={24} color="#E74C3C" />
-              <Text style={styles.metricValue}>{totalStock}</Text>
-              <Text style={styles.metricLabel}>Total Stock</Text>
-            </View>
-            
-            <View style={styles.metricCard}>
-              <Ionicons name="cart" size={24} color="#E74C3C" />
-              <Text style={styles.metricValue}>{totalSold}</Text>
-              <Text style={styles.metricLabel}>Medications Sold</Text>
-            </View>
-            
-            <View style={styles.metricCard}>
-              <Ionicons name="cash" size={24} color="#E74C3C" />
-              <Text style={styles.metricValue}>${totalRevenue.toFixed(2)}</Text>
-              <Text style={styles.metricLabel}>Total Revenue</Text>
-            </View>
-            
-            <View style={styles.metricCard}>
-              <Ionicons name="trending-up" size={24} color="#E74C3C" />
-              <Text style={[styles.metricValue, {fontSize: 14}]} numberOfLines={1}>
-                {mostSoldMedication ? mostSoldMedication.name : 'N/A'}
-              </Text>
-              <Text style={styles.metricLabel}>Most Sold</Text>
-            </View>
-          </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Reagent Stock</Text>
+          <FlatList
+            data={reagents}
+            renderItem={renderReagentItem}
+            keyExtractor={item => item.id!}
+            scrollEnabled={false}
+          />
         </View>
 
-        {/* Recent Sales */}
-        <View style={styles.salesSection}>
-          <View style={styles.salesHeader}>
-            <Text style={styles.sectionTitle}>Recent Sales</Text>
-            <View style={styles.timeFilter}>
-              <TouchableOpacity 
-                style={[styles.filterButton, timeFilter === 'week' && styles.activeFilter]}
-                onPress={() => setTimeFilter('week')}
-              >
-                <Text style={[styles.filterText, timeFilter === 'week' && styles.activeFilterText]}>Week</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.filterButton, timeFilter === 'month' && styles.activeFilter]}
-                onPress={() => setTimeFilter('month')}
-              >
-                <Text style={[styles.filterText, timeFilter === 'month' && styles.activeFilterText]}>Month</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.filterButton, timeFilter === 'year' && styles.activeFilter]}
-                onPress={() => setTimeFilter('year')}
-              >
-                <Text style={[styles.filterText, timeFilter === 'year' && styles.activeFilterText]}>Year</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TouchableOpacity 
-            style={[styles.sellButton, processing && styles.disabledButton]} 
-            onPress={() => {
-              // if (!pharmacy) {
-              //   Alert.alert('Error', 'Pharmacy data not loaded yet');
-              //   return;
-              // }
-              setShowSellModal(true);
-            }}
-            disabled={processing}
-          >
-            <Ionicons name="add" size={20} color="white" />
-            <Text style={styles.sellButtonText}>Sell Medication</Text>
-          </TouchableOpacity>
-
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Distributions</Text>
           <FlatList
-            data={recentSales}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.saleItem}>
-                <View style={styles.saleInfo}>
-                  <Text style={styles.medicationName}>{item.medicationName}</Text>
-                  <Text style={styles.saleDetails}>Quantity: {item.quantity} | ${item.price?.toFixed(2) || '0.00'}</Text>
-                  <Text style={styles.saleDetails}>Sold to: {item.soldTo}</Text>
-                  {item.prescription && <Text style={styles.prescription}>Prescription: {item.prescription}</Text>}
-                </View>
-                <View style={styles.saleMeta}>
-                  <Text style={styles.soldBy}>By: {item.soldBy}</Text>
-                  <Text style={styles.saleDate}>
-                    {item.createdAt?.toDate ? new Date(item.createdAt.toDate()).toLocaleDateString() : 'Unknown date'}
-                  </Text>
-                </View>
-              </View>
-            )}
+            data={distributions.slice(0, 5)}
+            renderItem={renderDistributionItem}
+            keyExtractor={item => item.id!}
+            scrollEnabled={false}
             ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Ionicons name="receipt" size={48} color="#BDC3C7" />
-                <Text style={styles.emptyStateText}>No sales yet</Text>
-                <Text style={styles.emptyStateSubtext}>Start selling medications to see records here</Text>
-              </View>
+              <Text style={styles.emptyText}>No distributions yet</Text>
             }
           />
         </View>
       </ScrollView>
 
-      {/* Sell Medication Modal */}
-      <Modal visible={showSellModal} animationType="slide" transparent={true}>
-        <View style={styles.modalContainer}>
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            onPress={() => setShowDropdown(false)}
-            activeOpacity={1}
-          >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Sell Medication</Text>
-              
-              <View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Search medication..."
-                  value={searchQuery}
-                  onChangeText={(text) => {
-                    setSearchQuery(text);
-                    setShowDropdown(true);
-                  }}
-                  onFocus={() => setShowDropdown(true)}
-                />
-                
-                {showDropdown && filteredMedications.length > 0 && (
-                  <View style={styles.dropdown}>
-                    <FlatList
-                      data={filteredMedications}
-                      keyExtractor={item => item.id!}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setSelectedMedication(item);
-                            setSearchQuery(item.name);
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <Text style={styles.dropdownText}>{item.name}</Text>
-                          <Text style={styles.dropdownStock}>Stock: {item.quantityStock}</Text>
-                        </TouchableOpacity>
-                      )}
-                      style={styles.dropdownList}
-                    />
-                  </View>
-                )}
-              </View>
-              
-              {selectedMedication && (
-                <View style={styles.selectedMedication}>
-                  <Text style={styles.medicationText}>{selectedMedication.name}</Text>
-                  <Text style={styles.stockText}>In stock: {selectedMedication.quantityStock}</Text>
-                  <Text style={styles.priceText}>Price: ${selectedMedication.price.toFixed(2)} per unit</Text>
-                  {sellQuantity && (
-                    <Text style={styles.totalPriceText}>
-                      Total: ${(selectedMedication.price * (parseInt(sellQuantity) || 0)).toFixed(2)}
-                    </Text>
-                  )}
-                </View>
-              )}
-              
-              <TextInput
-                style={styles.input}
-                placeholder="Quantity"
-                keyboardType="numeric"
-                value={sellQuantity}
-                onChangeText={setSellQuantity}
-              />
-              
-              <TextInput
-                style={styles.input}
-                placeholder="Sold to (customer name)"
-                value={soldTo}
-                onChangeText={setSoldTo}
-              />
-              
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Prescription details (optional)"
-                multiline
-                value={prescription}
-                onChangeText={setPrescription}
-              />
-              
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.cancelButton, processing && styles.disabledButton]} 
-                  onPress={() => {
-                    setShowSellModal(false);
-                    setShowDropdown(false);
-                    setSearchQuery('');
-                  }}
-                  disabled={processing}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.confirmButton, processing && styles.disabledButton]} 
-                  onPress={handleSellMedication}
-                  disabled={processing}
-                >
-                  {processing ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <Text style={styles.confirmButtonText}>Confirm Sale</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </Modal>
-
-      {/* Restock Medication Modal */}
-      <Modal visible={showRestockModal} animationType="slide" transparent={true}>
+      {/* Distribution Modal */}
+      <Modal visible={showDistributionModal} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Restock Medication</Text>
+            <Text style={styles.modalTitle}>Distribute Reagent</Text>
             
+            {selectedReagent && (
+              <View style={styles.selectedItem}>
+                <Text style={styles.selectedName}>{selectedReagent.name}</Text>
+                <Text style={styles.selectedStock}>
+                  Available: {selectedReagent.quantity} {selectedReagent.measurementUnit}
+                </Text>
+              </View>
+            )}
+
             <TextInput
               style={styles.input}
-              placeholder="Medication Name"
-              value={newMedication.name}
-              onChangeText={(text) => setNewMedication({...newMedication, name: text})}
-            />
-            
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Description"
-              multiline
-              value={newMedication.description}
-              onChangeText={(text) => setNewMedication({...newMedication, description: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Price per unit"
+              placeholder="Quantity to distribute"
               keyboardType="numeric"
-              value={newMedication.price === 0 ? '' : newMedication.price.toString()}
-              onChangeText={(text) => setNewMedication({...newMedication, price: parseFloat(text) || 0})}
+              value={distributionQty}
+              onChangeText={setDistributionQty}
             />
-            
+
+            <Text style={styles.label}>Select Lab Technician:</Text>
+            <ScrollView style={styles.technicianList}>
+              {technicians.map(tech => (
+                <TouchableOpacity
+                  key={tech.id}
+                  style={[
+                    styles.technicianItem,
+                    selectedTechnician?.id === tech.id && styles.selectedTechnician
+                  ]}
+                  onPress={() => setSelectedTechnician(tech)}
+                >
+                  <Text style={styles.technicianName}>{tech.name}</Text>
+                  <Text style={styles.technicianEmail}>{tech.email}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
             <TextInput
               style={styles.input}
-              placeholder="Quantity"
-              keyboardType="numeric"
-              value={newMedication.quantityStock === 0 ? '' : newMedication.quantityStock.toString()}
-              onChangeText={(text) => setNewMedication({...newMedication, quantityStock: parseInt(text) || 0})}
+              placeholder="Your security code"
+              value={userCode}
+              onChangeText={setUserCode}
+              secureTextEntry
             />
-            
-            <View style={styles.totalContainer}>
-              <Text style={styles.totalLabel}>Total Cost:</Text>
-              <Text style={styles.totalValue}>
-                ${(newMedication.price * newMedication.quantityStock).toFixed(2)}
-              </Text>
-            </View>
-            
+
             <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={[styles.cancelButton, processing && styles.disabledButton]} 
-                onPress={() => setShowRestockModal(false)}
-                disabled={processing}
+                style={styles.cancelButton}
+                onPress={() => {
+                  setShowDistributionModal(false);
+                  resetDistributionForm();
+                }}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.confirmButton, processing && styles.disabledButton]} 
-                onPress={handleRestock}
-                disabled={processing}
+                style={styles.confirmButton}
+                onPress={distributeReagent}
               >
-                {processing ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.confirmButtonText}>Add to Inventory</Text>
-                )}
+                <Text style={styles.confirmButtonText}>Distribute</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Restock Modal */}
+      <Modal visible={showRestockModal} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Restock Reagent</Text>
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Reagent name"
+              value={newReagent.name}
+              onChangeText={(text) => setNewReagent({...newReagent, name: text})}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Description"
+              value={newReagent.description}
+              onChangeText={(text) => setNewReagent({...newReagent, description: text})}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Quantity"
+              keyboardType="numeric"
+              value={newReagent.quantity.toString()}
+              onChangeText={(text) => setNewReagent({...newReagent, quantity: parseFloat(text) || 0})}
+            />
+
+            <Text style={styles.label}>Measurement Unit:</Text>
+            <View style={styles.unitButtons}>
+              {(['ml', 'pieces', 'cups'] as const).map(unit => (
+                <TouchableOpacity
+                  key={unit}
+                  style={[
+                    styles.unitButton,
+                    newReagent.measurementUnit === unit && styles.selectedUnit
+                  ]}
+                  onPress={() => setNewReagent({...newReagent, measurementUnit: unit})}
+                >
+                  <Text style={styles.unitText}>{unit}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Your security code"
+              value={userCode}
+              onChangeText={setUserCode}
+              secureTextEntry
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => {
+                  setShowRestockModal(false);
+                  resetRestockForm();
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.confirmButton}
+                onPress={() => restockReagent(true)}
+              >
+                <Text style={styles.confirmButtonText}>Add Reagent</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -552,182 +470,133 @@ const PharmacistDashboard = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
+    backgroundColor: '#F8F9FA',
+    padding: 15,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#E74C3C',
+    marginBottom: 20,
   },
-  headerTitle: {
-    fontSize: 20,
+  title: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#2C3E50',
   },
   restockButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    backgroundColor: '#27AE60',
+    padding: 10,
+    borderRadius: 8,
   },
   restockButtonText: {
     color: 'white',
+    marginLeft: 5,
     fontWeight: '600',
-    marginLeft: 4,
   },
-  dashboard: {
-    padding: 16,
+  section: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2C3E50',
-    marginBottom: 12,
+    marginBottom: 15,
   },
-  metricsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  metricCard: {
-    width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  metricValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#E74C3C',
-    marginVertical: 8,
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: '#7F8C8D',
-  },
-  salesSection: {
-    padding: 16,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    minHeight: 400,
-  },
-  salesHeader: {
+  reagentItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  timeFilter: {
-    flexDirection: 'row',
-    backgroundColor: '#ECF0F1',
-    borderRadius: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  activeFilter: {
-    backgroundColor: '#E74C3C',
-  },
-  filterText: {
-    color: '#7F8C8D',
-    fontSize: 12,
-  },
-  activeFilterText: {
-    color: 'white',
-  },
-  sellButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E74C3C',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  disabledButton: {
-    backgroundColor: '#BDC3C7',
-    opacity: 0.7,
-  },
-  sellButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  saleItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 12,
+    padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#ECF0F1',
   },
-  saleInfo: {
+  reagentInfo: {
     flex: 1,
   },
-  medicationName: {
+  reagentName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2C3E50',
+    marginBottom: 5,
+  },
+  reagentDescription: {
+    fontSize: 14,
+    color: '#7F8C8D',
+    marginBottom: 10,
+  },
+  stockInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stockText: {
+    fontSize: 14,
+    color: '#2C3E50',
+    marginRight: 10,
+  },
+  progressContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#ECF0F1',
+    borderRadius: 4,
+    marginRight: 10,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#27AE60',
+    borderRadius: 4,
+  },
+  percentageText: {
+    fontSize: 12,
+    color: '#7F8C8D',
+    minWidth: 30,
+  },
+  distributeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E96A9',
+    padding: 8,
+    borderRadius: 6,
+  },
+  distributeButtonText: {
+    color: 'white',
+    marginLeft: 5,
+    fontSize: 12,
+  },
+  distributionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECF0F1',
+  },
+  distributionText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#2C3E50',
-    marginBottom: 4,
   },
-  saleDetails: {
+  distributionDetails: {
     fontSize: 14,
     color: '#7F8C8D',
-    marginBottom: 2,
   },
-  prescription: {
+  distributionDate: {
     fontSize: 12,
-    color: '#3498DB',
-    fontStyle: 'italic',
-  },
-  saleMeta: {
-    alignItems: 'flex-end',
-  },
-  soldBy: {
-    fontSize: 12,
-    color: '#7F8C8D',
-    marginBottom: 4,
-  },
-  saleDate: {
-    fontSize: 12,
-    color: '#7F8C8D',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#7F8C8D',
-    marginTop: 16,
-    fontWeight: '600',
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
     color: '#BDC3C7',
-    marginTop: 8,
+    marginTop: 5,
+  },
+  emptyText: {
     textAlign: 'center',
+    color: '#7F8C8D',
+    padding: 20,
   },
   modalContainer: {
     flex: 1,
@@ -736,122 +605,95 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    width: '90%',
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 15,
     padding: 20,
+    width: '90%',
+    maxHeight: '80%',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#2C3E50',
+    textAlign: 'center',
+  },
+  selectedItem: {
+    backgroundColor: '#F8F9FA',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  selectedName: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#2C3E50',
-    marginBottom: 16,
-    textAlign: 'center',
+  },
+  selectedStock: {
+    fontSize: 14,
+    color: '#7F8C8D',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#BDC3C7',
+    borderColor: '#D5D8DC',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 12,
+    marginBottom: 15,
   },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 10,
   },
-  dropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#BDC3C7',
-    borderRadius: 8,
-    maxHeight: 200,
-    zIndex: 1000,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+  technicianList: {
+    maxHeight: 150,
+    marginBottom: 15,
   },
-  dropdownList: {
-    maxHeight: 200,
-  },
-  dropdownItem: {
-    padding: 12,
+  technicianItem: {
+    padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ECF0F1',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  dropdownText: {
-    fontSize: 14,
+  selectedTechnician: {
+    backgroundColor: '#E8F5E8',
+  },
+  technicianName: {
+    fontSize: 16,
     color: '#2C3E50',
   },
-  dropdownStock: {
-    fontSize: 12,
+  technicianEmail: {
+    fontSize: 14,
     color: '#7F8C8D',
   },
-  selectedMedication: {
-    backgroundColor: '#F9E6E6',
-    padding: 12,
+  unitButtons: {
+    flexDirection: 'row',
+    marginBottom: 15,
+  },
+  unitButton: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#D5D8DC',
     borderRadius: 8,
-    marginBottom: 12,
+    marginRight: 10,
   },
-  medicationText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#E74C3C',
+  selectedUnit: {
+    backgroundColor: '#1E96A9',
+    borderColor: '#1E96A9',
   },
-  stockText: {
-    fontSize: 14,
-    color: '#7F8C8D',
-    marginTop: 4,
-  },
-  priceText: {
-    fontSize: 14,
-    color: '#27AE60',
-    marginTop: 4,
-  },
-  totalPriceText: {
-    fontSize: 14,
-    color: '#E74C3C',
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 12,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#ECF0F1',
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+  unitText: {
     color: '#2C3E50',
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#27AE60',
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
   },
   cancelButton: {
     flex: 1,
     padding: 12,
     backgroundColor: '#ECF0F1',
     borderRadius: 8,
-    marginRight: 8,
+    marginRight: 10,
     alignItems: 'center',
   },
   cancelButtonText: {
@@ -861,9 +703,8 @@ const styles = StyleSheet.create({
   confirmButton: {
     flex: 1,
     padding: 12,
-    backgroundColor: '#E74C3C',
+    backgroundColor: '#27AE60',
     borderRadius: 8,
-    marginLeft: 8,
     alignItems: 'center',
   },
   confirmButtonText: {
@@ -872,4 +713,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PharmacistDashboard;
+export default PharmacyDashboard;

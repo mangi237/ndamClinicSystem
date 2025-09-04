@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Image, Modal, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, Timestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { Patient } from '../../types/Patient';
 import AddPatientModal from './addPatientModal';
@@ -11,42 +11,61 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../types/Navigation';
 
 type PatientListNavigationProp = StackNavigationProp<RootStackParamList, 'PatientDetails'>;
-
 const PatientList: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('registered');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  
   const { user } = useAuth();
   const navigation = useNavigation<PatientListNavigationProp>();
 
-  useEffect(() => {
-    const q = query(collection(db, 'patients'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setPatients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient)));
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (searchQuery) {
-      const filtered = patients.filter(patient => 
-        patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        patient.patientId.includes(searchQuery) ||
-        patient.phone.includes(searchQuery)
-      );
-      setFilteredPatients(filtered);
-    } else {
-      setFilteredPatients(patients);
+  // Fetch all patients and store them in state.
+useEffect(() => {
+  if (!user) {
+    setLoading(false);
+    return;
+  }
+  
+  const patientsQuery = query(collection(db, 'patients'));
+  
+  const unsubscribe = onSnapshot(patientsQuery, 
+    (snapshot) => {
+      const allPatients = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Patient[];
+      setPatients(allPatients);
+      setLoading(false);
+    },
+    (error) => {
+      console.error("Error fetching patients: ", error);
+      setLoading(false);
     }
-  }, [searchQuery, patients]);
+  );
 
-  const handlePatientAdded = () => {
-    console.log('Patient added successfully');
-  };
+  return () => unsubscribe();
+}, [user]);
+
+  // Filter patients based on the active tab and search query
+  const filteredPatients = patients.filter(patient => {
+    // First, filter by the active tab
+    const isMatchingTab = patient.status === activeTab;
+    
+    // Then, filter by the search query
+    const isMatchingSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (patient.patientId && patient.patientId.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (patient.phone && patient.phone.includes(searchQuery));
+      
+    return isMatchingTab && isMatchingSearch;
+  });
 
   const handlePatientPress = (patient: Patient) => {
     navigation.navigate('PatientDetails', { patient });
+    console.log('Navigating to details for patient: ', patient);
+    
   };
 
   const renderPatientItem = ({ item }: { item: Patient }) => (
@@ -64,7 +83,7 @@ const PatientList: React.FC = () => {
       
       <View style={styles.patientInfo}>
         <Text style={styles.patientName}>{item.name}</Text>
-        <Text style={styles.patientDetails}>ID: {item.patientId} | Age: {item.age}</Text>
+        <Text style={styles.patientDetails}>ID: {item.patientId}</Text>
         <Text style={styles.patientDetails}>Phone: {item.phone}</Text>
         <Text style={styles.patientStatus}>Status: {item.status}</Text>
       </View>
@@ -72,9 +91,22 @@ const PatientList: React.FC = () => {
     </TouchableOpacity>
   );
 
+  const handlePatientAdded = () => {
+    setModalVisible(false);
+    setSuccessModalVisible(true);
+  };
+
   const onAddPatient = () => {
     setModalVisible(true);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#1E96A9" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -85,18 +117,69 @@ const PatientList: React.FC = () => {
           <Text style={styles.addButtonText}>Add Patient</Text>
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={patients}
-        renderItem={renderPatientItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContainer}
-      />
+
+      <View style={styles.tabContainer}>
+        {['registered', 'waiting', 'completed'].map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#7F8C8D" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search patients..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+      
+      {filteredPatients.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No patients found with this status.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredPatients}
+          renderItem={renderPatientItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContainer}
+        />
+      )}
 
       <AddPatientModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onPatientAdded={handlePatientAdded}
       />
+      
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={successModalVisible}
+        onRequestClose={() => setSuccessModalVisible(false)}
+      >
+        <View style={styles.successModalContainer}>
+          <View style={styles.successModalView}>
+            <Ionicons name="checkmark-circle" size={80} color="#27AE60" />
+            <Text style={styles.successModalText}>Patient Added Successfully!</Text>
+            <Pressable
+              style={styles.successModalButton}
+              onPress={() => setSuccessModalVisible(false)}
+            >
+              <Text style={styles.successModalButtonText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -106,6 +189,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA',
     padding: 15,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -137,6 +225,57 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
     fontFamily: 'Poppins-SemiBold',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'white',
+    paddingVertical: 10,
+    // borderRadius: 10, 
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    borderWidth: 0,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    borderBottomColor: 'transparent',
+    shadowRadius: 2,
+  },
+  tab: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20, 
+  },
+  activeTab: {
+    // backgroundColor: '#1E96A9',
+    borderBottomColor: '#1E96A9',
+  },
+  tabText: {
+    color: '#34495E',
+    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
+  },
+  activeTabText: {
+    color: 'black',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    height: 40,
+    fontFamily: 'Poppins-Regular',
   },
   listContainer: {
     paddingBottom: 20,
@@ -189,6 +328,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#27AE60',
     fontFamily: 'Poppins-Regular',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#7F8C8D',
+    fontFamily: 'Poppins-Regular',
+    textAlign: 'center',
+  },
+  successModalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  successModalView: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  successModalText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 15,
+    color: '#2C3E50',
+    fontFamily: 'Poppins-Bold',
+  },
+  successModalButton: {
+    backgroundColor: '#27AE60',
+    borderRadius: 10,
+    padding: 15,
+    elevation: 2,
+    marginTop: 10,
+  },
+  successModalButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontFamily: 'Poppins-SemiBold',
   },
 });
 

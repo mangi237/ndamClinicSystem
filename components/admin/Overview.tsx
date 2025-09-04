@@ -6,8 +6,10 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import AppointmentList from '../medical/AppointmentList';
+import AnimatedHeader from '../common/AnimateHeader';
 
 const Overview = () => {
+  
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalDoctors: 0,
@@ -104,6 +106,7 @@ totalAppointments: 0,
 
   return (
     <ScrollView style={styles.container}>
+      <AnimatedHeader />
       <Text style={styles.title}>Dashboard Overview</Text>
       
       <View style={styles.statsContainer}>

@@ -9,13 +9,18 @@ import { AuthProvider } from './context/authContext';
 import CategorySelection from './screens/categorySelection';
 import LoginScreen from './screens/authentication/authScreen';
 import AdminDashboard from './screens/admin/adminDashboard';
-import DoctorDashboard from './screens/doctor/doctorDashboard';
+import DoctorDashboard from './screens/doctor/ReceptionistDashboard';
 // import NurseDashboard from './screens/nurse/NurseDashboard';
-import LabTechDashboard from './screens/lab/LabTechDashboard';
+import LabDashboard from './screens/lab/LabTechDashboard';
 import PharmacistDashboard from './screens/pharmacist/pharmacistDashboard';
-import NurseDashboard  from './screens/nurse/nurseDashboard';
+// import NurseDashboard  from './screens/nurse/nurseDashboard';
 import PatientDetailsScreen from './screens/PatientDetailsScreen';
-
+import PortalSelection from './screens/authentication/PortalSelection';
+import ReceptionistDashboard from './screens/doctor/ReceptionistDashboard';
+import CashierDashboard from './screens/cashier/CashierDashboard';
+import AnalyzerDashboard from './screens/Analyzer/AnalyzerDashboard';
+import PatientLogin from './screens/authentication/PatientLogin';
+import PatientDetailsViewScreen from './screens/Patient/PatientDashboard';
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
@@ -54,8 +59,9 @@ export default function App() {
 
   if (!appIsReady || !fontsLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#27AE60' }}>
-        <Text style={{ color: 'white', fontSize: 24, fontFamily: 'Poppins-Bold' }}>NDAM Clinic</Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#013220' }}>
+        
+        <Text style={{ color: 'white', fontSize: 24, fontFamily: 'Poppins-Bold' }}>PILEM LABS</Text>
         <Text style={{ color: 'white', fontSize: 16, marginTop: 10 }}>Loading...</Text>
       </View>
     );
@@ -67,7 +73,7 @@ export default function App() {
         <NavigationContainer>
           <Stack.Navigator 
           //  id={undefined}
-            initialRouteName="CategorySelection" 
+            initialRouteName="PortalSelection" 
             screenOptions={{ 
               headerShown: false,
               cardStyleInterpolator: ({ current, layouts }) => {
@@ -86,13 +92,31 @@ export default function App() {
               },
             }}
           >
+            <Stack.Screen name = "PortalSelection" component={ PortalSelection} />
           <Stack.Screen name="CategorySelection" component={CategorySelection} />
   <Stack.Screen name="LoginScreen" component={LoginScreen} />
   <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
-  <Stack.Screen name="DoctorDashboard" component={DoctorDashboard} />
-  <Stack.Screen name="NurseDashboard" component={NurseDashboard} />
-  <Stack.Screen name="LabTechDashboard" component={LabTechDashboard} />
+  <Stack.Screen name="ReceptionistDashboard" component={ReceptionistDashboard} />
+  <Stack.Screen name ="AnalyzerDashboard" component={AnalyzerDashboard} />
+  {/* <Stack.Screen name="NurseDashboard" component={NurseDashboard} /> */}
+  <Stack.Screen name="LabTechDashboard" component={LabDashboard} />
+  <Stack.Screen name="CashierDashboard" component={CashierDashboard} />
+    <Stack.Screen name="PatientLogin" component={PatientLogin} />
   <Stack.Screen name="PharmacistDashboard" component={PharmacistDashboard} />
+   <Stack.Screen 
+    name="PatientDetails" 
+    component={PatientDetailsScreen}
+    options={{ 
+      title: 'Patient Details',
+      headerShown: true // Show header for this screen
+    }}
+  />
+  <Stack.Screen 
+  name="PatientDetailsView" 
+  component={PatientDetailsViewScreen}
+  options={{ title: 'My Medical Records' }}
+/>
+
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>

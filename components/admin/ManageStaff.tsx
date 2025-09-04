@@ -17,7 +17,7 @@ const ManageStaff = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'doctor' as 'admin' | 'doctor' | 'nurse' | 'lab' | 'pharmacy',
+    role: 'receptionist' as 'admin'| 'lab' | 'pharmacy' | 'cashier' | 'receptionist' | 'analyzer',
     department: '',
     code: ''
   });
@@ -88,7 +88,7 @@ const ManageStaff = () => {
 
       setModalVisible(false);
       setEditingStaff(null);
-      setFormData({ name: '', email: '', role: 'doctor', department: '', code: '' });
+      setFormData({ name: '', email: '', role: 'receptionist', department: '', code: '' });
       fetchStaff();
     } catch (error) {
       console.error('Error saving staff: ', error);
@@ -135,7 +135,7 @@ const ManageStaff = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', role: 'doctor', department: '', code: '' });
+    setFormData({ name: '', email: '', role: 'receptionist', department: '', code: '' });
     setEditingStaff(null);
   };
 
@@ -233,7 +233,7 @@ const ManageStaff = () => {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Role *</Text>
                 <View style={styles.roleContainer}>
-                  {(['admin', 'doctor', 'nurse', 'lab', 'pharmacy'] as const).map((role) => (
+                  {(['admin', 'receptionist' ,'analyzer','cashier', 'lab', 'pharmacy'] as const).map((role) => (
                     <TouchableOpacity
                       key={role}
                       style={[

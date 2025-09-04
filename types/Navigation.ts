@@ -8,16 +8,17 @@ export type RootStackParamList = {
   AdminDashboard: undefined;
   DoctorDashboard: undefined;
   NurseDashboard: undefined;
-  LabTechDashboard: undefined;
+  LabDashboard: undefined;
   PharmacistDashboard: undefined;
-  PatientDetails: { patient: any; userRole?: string };
+  // PatientDetails: { patient: any; userRole?: string };
   LabTest: undefined;
   // Add these new routes:
   PatientList: undefined;
   AddPatientModal: undefined;
+  PatientDetails: { patient: Patient };
   AddNoteModal: undefined;
 };
 
 export type PatientDetailsScreenProps = StackScreenProps<RootStackParamList, 'PatientDetails'>;
-export type LabTechDashboardProps = StackScreenProps<RootStackParamList, 'LabTechDashboard'>;
+export type LabTechDashboardProps = StackScreenProps<RootStackParamList, 'LabDashboard'>;
 export type PatientListScreenProps = StackScreenProps<RootStackParamList, 'PatientList'>;
