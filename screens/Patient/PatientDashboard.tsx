@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Patient } from '../../types/Patient';
+import AnimatedHeader from '../../components/common/AnimateHeader';
 
 const PatientDetailsViewScreen = ({ route }) => {
   const { patient } = route.params;
@@ -30,7 +31,25 @@ const PatientDetailsViewScreen = ({ route }) => {
 
   return (
     <View style={styles.container}>
+<View>
+
+</View>
       <ScrollView contentContainerStyle={styles.content}>
+           <View style={styles.headerContent}>
+                  <View style={styles.userInfo}>
+                    <Text style={styles.greeting}>Hello  {patient?.name} </Text>
+                
+                    <Text style={styles.tagline}>Have the Best Experience with us</Text>
+                  </View>
+                  
+                  <View style={styles.logoContainer}>
+                    <Image
+                      source={require('../../assets/images/logo.png')} // Replace with your logo
+                      style={styles.logo}
+                      resizeMode="contain"
+                    />
+                  </View>
+                </View>
         {/* Patient Info */}
         <View style={styles.detailCard}>
           <Text style={styles.detailTitle}>Patient Information</Text>
@@ -187,6 +206,42 @@ const styles = StyleSheet.create({
     color: '#999',
     fontStyle: 'italic',
     marginTop: 8,
+  },
+   headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flex: 1,
+  },
+  userInfo: {
+        fontFamily: 'Poppins-Regular',
+    flex: 1,
+  },
+  greeting: {
+    color: 'white',
+    fontSize: 16,
+        fontFamily: 'Poppins-Regular',
+    fontWeight: '500',
+    
+  },
+  userName: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginVertical: 2,
+  },
+  tagline: {
+    color: 'rgba(255, 255, 255, 0.8)',
+        fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+  },
+  logoContainer: {
+    marginLeft: 20,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
 });
 

@@ -93,22 +93,27 @@ const LabDashboard = () => {
     }
   };
 
-  const uploadResult = async (fileUri: string, fileName: string) => {
+ const uploadResult = async (fileUri: string, fileName: string) => {
   if (!selectedPatient || !user) return;
+
+  // Check if user has permission to upload (lab technician/analyzer)
+  if (user.role !== 'lab' && user.role !== 'analyzer') {
+    Alert.alert('Error', 'Only lab staff can upload results');
+    return;
+  }
 
   setUploading(true);
   try {
-    // Convert file URI to blob
     const response = await fetch(fileUri);
-    const fileBlob = await response.blob();
+    const blob = await response.blob();
     
-    // Create a unique file path
+    // Create unique file path
     const filePath = `patient-results/${selectedPatient.id}/${Date.now()}_${fileName}`;
     
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('lab-results') // Your bucket name
-      .upload(filePath, fileBlob);
+      .from('lab-results')
+      .upload(filePath, blob);
 
     if (error) {
       throw new Error(`Upload failed: ${error.message}`);
@@ -119,14 +124,12 @@ const LabDashboard = () => {
       .from('lab-results')
       .getPublicUrl(filePath);
 
-    const downloadURL = urlData.publicUrl;
-
-    // Update Firestore with the real file URL
+    // Update Firestore with the file info
     const existingResults = selectedPatient.resultUrls || [];
     
     await updateDoc(doc(db, 'patients', selectedPatient.id!), {
       resultUrls: [...existingResults, {
-        url: downloadURL,
+        url: urlData.publicUrl,
         fileName: fileName,
         uploadedAt: new Date(),
         uploadedBy: user.name,
@@ -147,7 +150,6 @@ const LabDashboard = () => {
     setUploading(false);
   }
 };
-
   const getRequiredSamples = (patient: Patient): string[] => {
     if (!patient.labTests) return [];
     return patient.labTests.flatMap(test => test.samples || []);

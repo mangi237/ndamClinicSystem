@@ -33,8 +33,8 @@ const AnimatedHeader: React.FC<AnimatedHeaderProps> = ({ scrollY }) => {
       >
         <View style={styles.headerContent}>
           <View style={styles.userInfo}>
-            <Text style={styles.greeting}>Hello {user?.role}</Text>
-            <Text style={styles.userName}>{user?.name}</Text>
+            <Text style={styles.greeting}>Hello {user?.role}, {user?.name} </Text>
+        
             <Text style={styles.tagline}>Continue saving lives</Text>
           </View>
           
@@ -55,6 +55,7 @@ const styles = StyleSheet.create({
   header: {
     width: '100%',
     overflow: 'hidden',
+        fontFamily: 'Poppins-Regular',
   },
   gradient: {
     flex: 1,
@@ -69,12 +70,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userInfo: {
+        fontFamily: 'Poppins-Regular',
     flex: 1,
   },
   greeting: {
     color: 'white',
     fontSize: 16,
+        fontFamily: 'Poppins-Regular',
     fontWeight: '500',
+    
   },
   userName: {
     color: 'white',
@@ -84,15 +88,16 @@ const styles = StyleSheet.create({
   },
   tagline: {
     color: 'rgba(255, 255, 255, 0.8)',
+        fontFamily: 'Poppins-Regular',
     fontSize: 14,
   },
   logoContainer: {
     marginLeft: 20,
   },
   logo: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
 });
 

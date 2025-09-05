@@ -36,9 +36,9 @@ const PatientLogin = ({ navigation }) => {
       
       // Navigate based on status
       if (patientData.status === 'completed') {
-        navigation.navigate('PatientDashboard', { patientData });
+        navigation.navigate('PatientDetailsView', { patient: patientDoc.data() });
       } else {
-        navigation.navigate('PatientDashboard', { patientData });
+        navigation.navigate('PatientDetailsView', { patient: patientDoc.data() });
       }
     }
   } catch (error) {

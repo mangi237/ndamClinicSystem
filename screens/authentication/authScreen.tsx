@@ -30,7 +30,7 @@ const LoginScreen = ({ navigation, route }) => {
           navigation.navigate('ReceptionistDashboard');
           break;
         case 'lab':
-          navigation.navigate('LabTechDashboard');
+          navigation.navigate('LabDashboard');
           break;
         case 'pharmacy':
           navigation.navigate('PharmacistDashboard');
@@ -85,7 +85,7 @@ const LoginScreen = ({ navigation, route }) => {
         
         <Text style={styles.noteText}>
           Your access code is provided by the administrator{'\n'}
-          Example code for admin: ADM001
+         Contact The Admin if you dont know your Access Code!
         </Text>
       </Animatable.View>
     </View>

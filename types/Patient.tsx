@@ -59,9 +59,9 @@ export interface ResultFile {
   fileName: string;
   uploadedAt: Date;
   uploadedBy: string;
-}
+}                                                                                                                               
 
-// Updated PatientCreateData to match the new Patient interface
+
 export interface PatientCreateData {
   patientId: string;
   name: string;

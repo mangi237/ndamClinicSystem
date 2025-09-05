@@ -11,7 +11,7 @@ import LoginScreen from './screens/authentication/authScreen';
 import AdminDashboard from './screens/admin/adminDashboard';
 import DoctorDashboard from './screens/doctor/ReceptionistDashboard';
 // import NurseDashboard from './screens/nurse/NurseDashboard';
-import LabDashboard from './screens/lab/LabTechDashboard';
+import LabDashboard from './screens/lab/LabDashboard';
 import PharmacistDashboard from './screens/pharmacist/pharmacistDashboard';
 // import NurseDashboard  from './screens/nurse/nurseDashboard';
 import PatientDetailsScreen from './screens/PatientDetailsScreen';
@@ -99,7 +99,7 @@ export default function App() {
   <Stack.Screen name="ReceptionistDashboard" component={ReceptionistDashboard} />
   <Stack.Screen name ="AnalyzerDashboard" component={AnalyzerDashboard} />
   {/* <Stack.Screen name="NurseDashboard" component={NurseDashboard} /> */}
-  <Stack.Screen name="LabTechDashboard" component={LabDashboard} />
+  <Stack.Screen name="LabDashboard" component={LabDashboard} />
   <Stack.Screen name="CashierDashboard" component={CashierDashboard} />
     <Stack.Screen name="PatientLogin" component={PatientLogin} />
   <Stack.Screen name="PharmacistDashboard" component={PharmacistDashboard} />
