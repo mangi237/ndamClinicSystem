@@ -52,7 +52,7 @@ const LoginScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <Animatable.View animation="fadeInDown" duration={1000} style={styles.header}>
-        <Text style={styles.headerText}>NDAM Clinic</Text>
+        <Text style={styles.headerText}>PILEM LABS</Text>
         <Text style={styles.subHeaderText}>
           Enter Your Access Code for {role.charAt(0).toUpperCase() + role.slice(1)}
         </Text>

@@ -6,6 +6,7 @@ import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, getDocs }
 import { db } from '../../services/firebase';
 import { useAuth } from '../../context/authContext';
 import { User } from '../../types/User';
+import AnimatedHeader from '../../components/common/AnimateHeader';
 
 interface Reagent {
   id?: string;
@@ -287,7 +288,7 @@ const PharmacyDashboard = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Stock Manager</Text>
+        <AnimatedHeader />\
         <TouchableOpacity 
           style={styles.restockButton}
           onPress={() => setShowRestockModal(true)}

@@ -12,10 +12,11 @@ const Overview = () => {
   
   const [stats, setStats] = useState({
     totalPatients: 0,
-    totalDoctors: 0,
-    totalNurses: 0,
-totalAppointments: 0,
-    revenue: 0,
+    labTechnicians:0,
+    analyzer: 0,
+    receptionist : 0,
+totalCashiers: 0,
+
   });
 
   useEffect(() => {
@@ -30,28 +31,32 @@ totalAppointments: 0,
 
       // Fetch staff counts
       const staffSnapshot = await getDocs(collection(db, 'users'));
-      let totalDoctors = 0;
-      let totalNurses = 0;
-      
-      const appointmentSnapshot = await getDocs(collection(db, 'appointments'));
-      let totalAppointments = 0;
-    appointmentSnapshot.forEach((doc) => {
-      const appointmentData = doc.data();
-      totalAppointments++;
-    });
+    let labTechnicians = 0;
+      let totalCashiers = 0;
+  
+    let analyzer = 0;
+    let receptionist = 0;
+    
       staffSnapshot.forEach((doc) => {
         const staffData = doc.data();
-        if (staffData.role === 'doctor') totalDoctors++;
-        if (staffData.role === 'nurse') totalNurses++;
+     
+        if (staffData.role === 'cashier') totalCashiers++;
+        if (staffData.role === 'analyzer') analyzer++;
+        if (staffData.role === 'lab') labTechnicians++;
+        if (staffData.tole === 'receptionist') receptionist++;
       });
 
       // For demo purposes, setting some sample data
       setStats({
         totalPatients,
-        totalDoctors,
-        totalNurses,
-        totalAppointments,
-        revenue: 12500,
+       analyzer,
+labTechnicians,
+        totalCashiers,
+    receptionist,
+
+      
+
+
       });
     } catch (error) {
       console.error('Error fetching stats: ', error);
@@ -118,20 +123,20 @@ totalAppointments: 0,
         
         <View style={styles.statCard}>
           <Ionicons name="medical" size={30} color="#27AE60" />
-          <Text style={styles.statNumber}>{stats.totalDoctors}</Text>
-          <Text style={styles.statLabel}>Doctors</Text>
+          <Text style={styles.statNumber}>{stats.labTechnicians}</Text>
+          <Text style={styles.statLabel}>Lab Technicians</Text>
         </View>
         
         <View style={styles.statCard}>
           <Ionicons name="fitness" size={30} color="#8E44AD" />
-          <Text style={styles.statNumber}>{stats.totalNurses}</Text>
-          <Text style={styles.statLabel}>Nurses</Text>
+          <Text style={styles.statNumber}>{stats.totalCashiers}</Text>
+          <Text style={styles.statLabel}>Cashiers</Text>
         </View>
         
         <View style={styles.statCard}>
           <Ionicons name="calendar" size={30} color="#E67E22" />
-          <Text style={styles.statNumber}>{stats.totalAppointments}</Text>
-          <Text style={styles.statLabel}>Total Appointments</Text>
+          <Text style={styles.statNumber}>{stats.receptionist}</Text>
+          <Text style={styles.statLabel}>Receptionist</Text>
         </View>
       </View>
       
@@ -174,6 +179,7 @@ totalAppointments: 0,
 
 const styles = StyleSheet.create({
   container: {
+    fontFamily: 'Poppins-Regular',
     flex: 1,
     backgroundColor: '#F8F9FA',
     padding: 15,

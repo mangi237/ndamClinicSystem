@@ -55,7 +55,7 @@ const PatientLogin = ({ navigation }) => {
                     source={require('../../assets/images/logo.png')} // Update this path to your clinic's logo
                     style={styles.logo}
                 />
-                <Text style={styles.headerText}>NDAM Clinic</Text>
+                <Text style={styles.headerText}>Pilem Lab Clinic</Text>
                 <Text style={styles.subHeaderText}>Patient Portal</Text>
             </Animatable.View>
             
