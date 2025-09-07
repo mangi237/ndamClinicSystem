@@ -2,10 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
-import { Patient,  } from '../../types/Patient';
+import { BarChart, LineChart } from 'react-native-chart-kit';
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
@@ -24,22 +23,18 @@ const Analytics = () => {
 
   const fetchAnalyticsData = async () => {
     try {
-      // Fetch patients count
       const patientsSnapshot = await getDocs(collection(db, 'patients'));
       const totalPatients = patientsSnapshot.size;
 
-      // Fetch staff count
       const staffSnapshot = await getDocs(collection(db, 'users'));
       const staffCount = staffSnapshot.size;
 
-      // Fetch appointments
       const appointmentsSnapshot = await getDocs(collection(db, 'appointments'));
       const totalAppointments = appointmentsSnapshot.size;
       const completedAppointments = appointmentsSnapshot.docs.filter(
         doc => doc.data().status === 'completed'
       ).length;
 
-      // For demo purposes - in a real app, you'd calculate these from actual data
       const revenue = 12500 + (Math.random() * 5000);
       const averageWaitTime = 15 + (Math.random() * 30);
 
@@ -57,8 +52,7 @@ const Analytics = () => {
   };
 
   const screenWidth = Dimensions.get('window').width;
-
-  // Sample data for charts
+  const screenHeight = Dimensions.get('window').height;
   const revenueData = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
     datasets: [
@@ -77,21 +71,12 @@ const Analytics = () => {
     ],
   };
 
-  const appointmentData = {
-    labels: ['Scheduled', 'Completed', 'Cancelled'],
-    datasets: [
-      {
-        data: [35, 28, 7],
-      },
-    ],
-  };
-
   const chartConfig = {
     backgroundColor: '#ffffff',
     backgroundGradientFrom: '#ffffff',
     backgroundGradientTo: '#ffffff',
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(39, 174, 96, ${opacity})`,
+    color: (opacity = 1) => `rgba(0, 128, 128, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
     style: {
       borderRadius: 16,
@@ -99,9 +84,11 @@ const Analytics = () => {
     propsForDots: {
       r: '6',
       strokeWidth: '2',
-      stroke: '#27AE60',
+      stroke: '#008080',
     },
     barPercentage: 0.5,
+    fillShadowGradient: '#008080',
+    fillShadowGradientOpacity: 1,
     propsForBackgroundLines: {
       strokeWidth: 1,
       stroke: '#e3e3e3',
@@ -112,16 +99,12 @@ const Analytics = () => {
     },
   };
 
-  const pieChartConfig = {
-    color: (opacity = 1) => `rgba(39, 174, 96, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-  };
-
   const calculatePercentage = (value: number, total: number) => {
     return total > 0 ? Math.round((value / total) * 100) : 0;
   };
 
   return (
+    <View style={{height: screenHeight}}>
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Analytics Dashboard</Text>
@@ -150,60 +133,48 @@ const Analytics = () => {
       {/* Key Metrics */}
       <View style={styles.metricsContainer}>
         <View style={styles.metricCard}>
-          <Ionicons name="people" size={24} color="#2E86C1" />
+          <View style={styles.metricIcon}>
+            <Ionicons name="people" size={24} color="#008080" />
+          </View>
           <Text style={styles.metricValue}>{stats.totalPatients}</Text>
           <Text style={styles.metricLabel}>Total Patients</Text>
         </View>
         <View style={styles.metricCard}>
-          <Ionicons name="calendar" size={24} color="#27AE60" />
-          <Text style={styles.metricValue}>{stats.totalAppointments}</Text>
-          <Text style={styles.metricLabel}>Appointments</Text>
+          <View style={styles.metricIcon}>
+            <Ionicons name="male" size={24} color="#008080" />
+          </View>
+          <Text style={styles.metricValue}>{stats.staffCount}</Text>
+          <Text style={styles.metricLabel}>Total Staffs</Text>
         </View>
         <View style={styles.metricCard}>
-          <Ionicons name="cash" size={24} color="#E67E22" />
+          <View style={styles.metricIcon}>
+            <Ionicons name="cash" size={24} color="#008080" />
+          </View>
           <Text style={styles.metricValue}>${stats.revenue.toLocaleString()}</Text>
           <Text style={styles.metricLabel}>Revenue</Text>
         </View>
         <View style={styles.metricCard}>
-          <Ionicons name="time" size={24} color="#8E44AD" />
+          <View style={styles.metricIcon}>
+            <Ionicons name="time" size={24} color="#008080" />
+          </View>
           <Text style={styles.metricValue}>{Math.round(stats.averageWaitTime)}m</Text>
           <Text style={styles.metricLabel}>Avg Wait Time</Text>
-        </View>
-      </View>
-
-      {/* Appointment Success Rate */}
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Appointment Status</Text>
-        <View style={styles.successRateContainer}>
-          <View style={styles.successRate}>
-            <Text style={styles.successRateValue}>
-              {calculatePercentage(stats.completedAppointments, stats.totalAppointments)}%
-            </Text>
-            <Text style={styles.successRateLabel}>Completion Rate</Text>
-          </View>
-          <View style={styles.successRateDetails}>
-            <View style={styles.successRateItem}>
-              <View style={[styles.statusIndicator, styles.scheduled]} />
-              <Text style={styles.successRateText}>
-                Scheduled: {stats.totalAppointments - stats.completedAppointments}
-              </Text>
-            </View>
-            <View style={styles.successRateItem}>
-              <View style={[styles.statusIndicator, styles.completed]} />
-              <Text style={styles.successRateText}>
-                Completed: {stats.completedAppointments}
-              </Text>
-            </View>
-          </View>
         </View>
       </View>
 
       {/* Revenue Chart */}
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>Revenue Trend</Text>
+        <View style={styles.chartFilterContainer}>
+          {['All', 'Week', 'Month', 'Year'].map((item) => (
+            <TouchableOpacity key={item} style={styles.filterButton}>
+              <Text style={styles.filterButtonText}>{item}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <LineChart
           data={revenueData}
-          width={screenWidth - 30}
+          width={screenWidth - 40}
           height={220}
           chartConfig={chartConfig}
           bezier
@@ -221,9 +192,16 @@ const Analytics = () => {
       {/* Patient Visits Chart */}
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>Patient Visits This Week</Text>
+        <View style={styles.chartFilterContainer}>
+          {['All', 'Week', 'Month', 'Year'].map((item) => (
+            <TouchableOpacity key={item} style={styles.filterButton}>
+              <Text style={styles.filterButtonText}>{item}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <BarChart
           data={patientData}
-          width={screenWidth - 30}
+          width={screenWidth - 40}
           height={220}
           chartConfig={chartConfig}
           style={styles.chart}
@@ -236,74 +214,18 @@ const Analytics = () => {
         />
       </View>
 
-      {/* Staff Distribution */}
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Staff Distribution</Text>
-        <View style={styles.staffStats}>
-          <View style={styles.staffStatItem}>
-            <Ionicons name="medical" size={20} color="#27AE60" />
-            <Text style={styles.staffStatText}>Doctors: {Math.round(stats.staffCount * 0.4)}</Text>
-          </View>
-          <View style={styles.staffStatItem}>
-            <Ionicons name="fitness" size={20} color="#8E44AD" />
-            <Text style={styles.staffStatText}>Nurses: {Math.round(stats.staffCount * 0.3)}</Text>
-          </View>
-          <View style={styles.staffStatItem}>
-            <Ionicons name="flask" size={20} color="#2E86C1" />
-            <Text style={styles.staffStatText}>Lab Techs: {Math.round(stats.staffCount * 0.1)}</Text>
-          </View>
-          <View style={styles.staffStatItem}>
-            <Ionicons name="bag" size={20} color="#E67E22" />
-            <Text style={styles.staffStatText}>Pharmacists: {Math.round(stats.staffCount * 0.1)}</Text>
-          </View>
-          <View style={styles.staffStatItem}>
-            <Ionicons name="person" size={20} color="#7F8C8D" />
-            <Text style={styles.staffStatText}>Admins: {Math.round(stats.staffCount * 0.1)}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Department Performance */}
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Department Performance</Text>
-        <View style={styles.performanceContainer}>
-          {[
-            { name: 'Cardiology', efficiency: 92, patients: 45 },
-            { name: 'Pediatrics', efficiency: 88, patients: 38 },
-            { name: 'Orthopedics', efficiency: 95, patients: 52 },
-            { name: 'Neurology', efficiency: 85, patients: 29 },
-            { name: 'Emergency', efficiency: 78, patients: 67 },
-          ].map((dept, index) => (
-            <View key={index} style={styles.performanceItem}>
-              <View style={styles.performanceHeader}>
-                <Text style={styles.performanceName}>{dept.name}</Text>
-                <Text style={styles.performanceValue}>{dept.efficiency}%</Text>
-              </View>
-              <View style={styles.performanceBar}>
-                <View 
-                  style={[
-                    styles.performanceBarFill,
-                    { width: `${dept.efficiency}%`, backgroundColor: getDepartmentColor(index) }
-                  ]} 
-                />
-              </View>
-              <Text style={styles.performancePatients}>{dept.patients} patients</Text>
-            </View>
-          ))}
-        </View>
-      </View>
+      {/* Appointment Success Rate */}
+   
     </ScrollView>
-  );
-};
 
-const getDepartmentColor = (index: number) => {
-  const colors = ['#27AE60', '#2E86C1', '#8E44AD', '#E67E22', '#E74C3C'];
-  return colors[index % colors.length];
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    flexGrow: 1,
     backgroundColor: '#F8F9FA',
     padding: 15,
   },
@@ -355,22 +277,31 @@ const styles = StyleSheet.create({
   metricCard: {
     width: '48%',
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
     marginBottom: 15,
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
+  },
+  metricIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#E0F2F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   metricValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginVertical: 5,
     color: '#2C3E50',
     fontFamily: 'Poppins-Bold',
+    marginBottom: 5,
   },
   metricLabel: {
     fontSize: 14,
@@ -379,24 +310,41 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 20,
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
   },
   chartTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 15,
+    fontWeight: 'bold',
     color: '#2C3E50',
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: 'Poppins-Bold',
+    marginBottom: 15,
+  },
+  chartFilterContainer: {
+    flexDirection: 'row',
+    marginBottom: 15,
+  },
+  filterButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#E0F2F1',
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  filterButtonText: {
+    color: '#008080',
+    fontSize: 12,
+    fontFamily: 'Poppins-Medium',
   },
   chart: {
-    borderRadius: 10,
+    borderRadius: 12,
+    marginVertical: 8,
   },
   successRateContainer: {
     flexDirection: 'row',
@@ -409,7 +357,7 @@ const styles = StyleSheet.create({
   successRateValue: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#27AE60',
+    color: '#008080',
     fontFamily: 'Poppins-Bold',
   },
   successRateLabel: {
@@ -436,66 +384,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#3498DB',
   },
   completed: {
-    backgroundColor: '#27AE60',
+    backgroundColor: '#008080',
   },
   successRateText: {
     fontSize: 14,
     color: '#2C3E50',
-    fontFamily: 'Poppins-Regular',
-  },
-  staffStats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  staffStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '48%',
-    marginBottom: 15,
-  },
-  staffStatText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#2C3E50',
-    fontFamily: 'Poppins-Regular',
-  },
-  performanceContainer: {
-    marginTop: 10,
-  },
-  performanceItem: {
-    marginBottom: 15,
-  },
-  performanceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  performanceName: {
-    fontSize: 14,
-    color: '#2C3E50',
-    fontFamily: 'Poppins-Medium',
-  },
-  performanceValue: {
-    fontSize: 14,
-    color: '#27AE60',
-    fontFamily: 'Poppins-Medium',
-  },
-  performanceBar: {
-    height: 8,
-    backgroundColor: '#ECF0F1',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 5,
-  },
-  performanceBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  performancePatients: {
-    fontSize: 12,
-    color: '#7F8C8D',
     fontFamily: 'Poppins-Regular',
   },
 });

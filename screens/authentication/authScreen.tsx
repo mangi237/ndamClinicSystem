@@ -1,16 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert, 
+  Image,
+  ScrollView,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Animatable from 'react-native-animatable';
 import { useAuth } from '../../context/authContext';
+import * as Animatable from 'react-native-animatable';
 
-const LoginScreen = ({ navigation, route }) => {
+const LoginScreen = ({ navigation }) => {
   const [code, setCode] = useState('');
   const { login, loading } = useAuth();
-  
-  // Provide a default value for role in case it's not passed
-  const role = route.params?.role || '';
-
   const handleLogin = async () => {
     if (!code) {
       Alert.alert('Error', 'Please enter your access code');
@@ -50,18 +58,55 @@ const LoginScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Animatable.View animation="fadeInDown" duration={1000} style={styles.header}>
-        <Text style={styles.headerText}>PILEM LABS</Text>
-        <Text style={styles.subHeaderText}>
-          Enter Your Access Code for {role.charAt(0).toUpperCase() + role.slice(1)}
-        </Text>
-      </Animatable.View>
-      
-      <Animatable.View animation="fadeInUp" duration={1000} style={styles.formContainer}>
-        <View style={styles.inputContainer}>
-          <Ionicons name="key" size={20} color="#7F8C8D" />
-          <TextInput
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.contentContainer}>
+          {/* Left Section with Logo */}
+          <View style={styles.logoContainer}>
+            <Animatable.View 
+              animation="fadeIn" 
+              duration={1500}
+              style={styles.logoBackground}
+            >
+              <Image 
+                source={require('../../assets/images/logo.png')} 
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </Animatable.View>
+            <Animatable.Text 
+              animation="fadeInUp" 
+              duration={1000}
+              delay={300}
+              style={styles.tagline}
+            >
+          PILEM LABS
+            </Animatable.Text>
+            <Animatable.Text 
+              animation="fadeInUp" 
+              duration={1000}
+              delay={500}
+              style={styles.description}
+            >
+With Our Advanced Management Technology, We Have Eradicated Papers, Your All in One Solution
+            </Animatable.Text>
+          </View>
+
+          {/* Right Section with Login Form */}
+          <Animatable.View 
+            animation="fadeInRight" 
+            duration={1000}
+            style={styles.formContainer}
+          >
+            <Text style={styles.welcomeText}>Welcome Back!</Text>
+            
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color="#008080" style={styles.inputIcon} />
+        <TextInput
             style={styles.input}
             placeholder="Enter your access code"
             value={code}
@@ -70,62 +115,114 @@ const LoginScreen = ({ navigation, route }) => {
             editable={!loading}
           />
         </View>
-        
-        <TouchableOpacity 
-          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <Text style={styles.loginButtonText}>Loading...</Text>
-          ) : (
-            <Text style={styles.loginButtonText}>Login</Text>
-          )}
-        </TouchableOpacity>
-        
-        <Text style={styles.noteText}>
-          Your access code is provided by the administrator{'\n'}
-         Contact The Admin if you dont know your Access Code!
-        </Text>
-      </Animatable.View>
-    </View>
+            
+         
+           
+              <Text style={styles.checkboxLabel}>Cant Recall Code ? Contact Admin</Text>
+    
+            
+            {/* Login Button */}
+            <TouchableOpacity 
+              style={styles.loginButton}
+              onPress={handleLogin}
+            >
+              <Text style={styles.loginButtonText}>LOGIN</Text>
+            </TouchableOpacity>
+            
+            {/* Divider */}
+         
+            {/* Footer Links */}
+          
+          </Animatable.View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
+
+const { width, height } = Dimensions.get('window');
+const isSmallScreen = height < 700;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
   },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  scrollContainer: {
+    flexGrow: 1,
   },
-  headerText: {
-    fontSize: 28,
+  contentContainer: {
+    flex: 1,
+    flexDirection: width > 768 ? 'row' : 'column',
+  },
+  logoContainer: {
+    flex: 1,
+    backgroundColor: '#008080',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    ...(width > 768 ? { 
+      width: '50%',
+      height: '100%'
+    } : {
+      height: isSmallScreen ? 200 : 250,
+      width: '100%',
+    }),
+  },
+  logoBackground: {
+    backgroundColor: 'white',
+    borderRadius: 100,
+    padding: 20,
+    marginBottom: 20,
+    ...(width > 768 ? {
+      width: 250,
+      height: 250,
+      justifyContent: 'center',
+      alignItems: 'center',
+    } : {
+      width: 120,
+      height: 120,
+    }),
+  },
+  logo: {
+    ...(width > 768 ? {
+      width: 200,
+      height: 200,
+    } : {
+      width: 80,
+      height: 80,
+    }),
+  },
+  tagline: {
+    color: 'white',
+    fontSize: width > 768 ? 24 : 18,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    textAlign: 'center',
+    marginBottom: 10,
     fontFamily: 'Poppins-Bold',
   },
-  subHeaderText: {
-    fontSize: 16,
-    color: '#7F8C8D',
-    marginTop: 5,
+  description: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: width > 768 ? 16 : 14,
+    textAlign: 'center',
+    paddingHorizontal: 20,
     fontFamily: 'Poppins-Regular',
   },
   formContainer: {
     flex: 1,
-    padding: 20,
+    padding: 30,
     justifyContent: 'center',
+    ...(width > 768 ? {
+      width: '50%',
+    } : {}),
+  },
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2C3E50',
+    marginBottom: 30,
+    textAlign: 'center',
+    fontFamily: 'Poppins-Bold',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -133,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: 15,
     marginBottom: 20,
     elevation: 2,
     shadowColor: '#000',
@@ -141,33 +238,92 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  inputIcon: {
+    marginRight: 10,
+  },
   input: {
     flex: 1,
-    marginLeft: 10,
     fontSize: 16,
     fontFamily: 'Poppins-Regular',
   },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#008080',
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkedBox: {
+    backgroundColor: '#008080',
+  },
+  checkboxLabel: {
+    color: '#7F8C8D',
+    fontFamily: 'Poppins-Regular',
+  },
   loginButton: {
-    backgroundColor: '#27AE60',
+    backgroundColor: '#008080',
     borderRadius: 10,
-    padding: 15,
+    padding: 18,
     alignItems: 'center',
     marginBottom: 20,
-  },
-  loginButtonDisabled: {
-    backgroundColor: '#7F8C8D',
   },
   loginButtonText: {
     color: 'white',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     fontFamily: 'Poppins-SemiBold',
   },
-  noteText: {
-    textAlign: 'center',
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 10,
     color: '#7F8C8D',
-    fontSize: 14,
     fontFamily: 'Poppins-Regular',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 25,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  googleButtonText: {
+    marginLeft: 10,
+    color: '#2C3E50',
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  linkText: {
+    color: '#008080',
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
   },
 });
 

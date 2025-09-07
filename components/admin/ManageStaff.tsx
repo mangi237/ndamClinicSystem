@@ -1,11 +1,11 @@
 // components/admin/ManageStaff.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { User } from '../../types/User';
-
+const screenHeight = Dimensions.get('window').height;
 const ManageStaff = () => {
   const [staff, setStaff] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,15 +73,12 @@ const ManageStaff = () => {
       const staffData = {
         ...formData,
         createdAt: new Date(),
-        // In a real app, you'd also create auth credentials
       };
 
       if (editingStaff) {
-        // Update existing staff
         await updateDoc(doc(db, 'users', editingStaff.id), staffData);
         Alert.alert('Success', 'Staff member updated successfully');
       } else {
-        // Add new staff
         await addDoc(collection(db, 'users'), staffData);
         Alert.alert('Success', 'Staff member added successfully');
       }
@@ -133,6 +130,8 @@ const ManageStaff = () => {
       ]
     );
   };
+  
+
 
   const resetForm = () => {
     setFormData({ name: '', email: '', role: 'receptionist', department: '', code: '' });
@@ -141,12 +140,15 @@ const ManageStaff = () => {
 
   const renderStaffItem = ({ item }: { item: User }) => (
     <View style={styles.staffItem}>
+      <View style={styles.staffAvatar}>
+        <Ionicons name="person" size={24} color="#008080" />
+      </View>
       <View style={styles.staffInfo}>
         <Text style={styles.staffName}>{item.name}</Text>
-        <Text style={styles.staffDetails}>Email: {item.email}</Text>
-        <Text style={styles.staffDetails}>Role: {item.role}</Text>
-        {item.department && <Text style={styles.staffDetails}>Department: {item.department}</Text>}
-        {item.code && <Text style={styles.staffDetails}>Access Code: {item.code}</Text>}
+        <Text style={styles.staffDetails}>{item.email}</Text>
+        <View style={styles.roleBadge}>
+          <Text style={styles.roleText}>{item.role}</Text>
+        </View>
       </View>
       <View style={styles.staffActions}>
         <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionButton}>
@@ -178,17 +180,22 @@ const ManageStaff = () => {
             setModalVisible(true);
           }}
         >
-          <Ionicons name="add" size={24} color="white" />
+          <Ionicons name="add" size={20} color="white" />
           <Text style={styles.addButtonText}>Add Staff</Text>
         </TouchableOpacity>
       </View>
-      
+    <View style   = {{height: screenHeight}}>
+  <ScrollView style={{flex: 1,}}>
+  
       <FlatList
         data={filteredStaff}
         renderItem={renderStaffItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContainer}
       />
+      </ScrollView>
+    </View>
+    
 
       <Modal
         animationType="slide"
@@ -233,7 +240,7 @@ const ManageStaff = () => {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Role *</Text>
                 <View style={styles.roleContainer}>
-                  {(['admin', 'receptionist' ,'analyzer','cashier', 'lab', 'pharmacy'] as const).map((role) => (
+                  {(['admin', 'receptionist', 'analyzer', 'cashier', 'lab', 'pharmacy'] as const).map((role) => (
                     <TouchableOpacity
                       key={role}
                       style={[
@@ -307,6 +314,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FA',
     padding: 15,
+    height: screenHeight,
+
   },
   header: {
     flexDirection: 'row',
@@ -339,7 +348,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#27AE60',
+    backgroundColor: '#008080',
     borderRadius: 10,
     padding: 12,
     elevation: 2,
@@ -357,6 +366,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingBottom: 20,
+    height: screenHeight,
   },
   staffItem: {
     flexDirection: 'row',
@@ -371,11 +381,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  staffAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E0F2F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
   staffInfo: {
     flex: 1,
   },
   staffName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 5,
     fontFamily: 'Poppins-SemiBold',
@@ -384,8 +403,20 @@ const styles = StyleSheet.create({
   staffDetails: {
     fontSize: 14,
     color: '#7F8C8D',
-    marginBottom: 3,
+    marginBottom: 5,
     fontFamily: 'Poppins-Regular',
+  },
+  roleBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E0F2F1',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  roleText: {
+    fontSize: 12,
+    color: '#008080',
+    fontFamily: 'Poppins-Medium',
   },
   staffActions: {
     flexDirection: 'row',
@@ -458,7 +489,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   roleButtonSelected: {
-    backgroundColor: '#2E86C1',
+    backgroundColor: '#008080',
   },
   roleButtonText: {
     color: '#2C3E50',
@@ -478,7 +509,7 @@ const styles = StyleSheet.create({
   },
   generateButton: {
     padding: 12,
-    backgroundColor: '#3498DB',
+    backgroundColor: '#008080',
     borderRadius: 8,
   },
   generateButtonText: {
@@ -487,7 +518,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Medium',
   },
   saveButton: {
-    backgroundColor: '#27AE60',
+    backgroundColor: '#008080',
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',

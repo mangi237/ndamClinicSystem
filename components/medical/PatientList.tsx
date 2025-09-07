@@ -186,7 +186,7 @@ useEffect(() => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    // flex: 1,
     backgroundColor: '#F8F9FA',
     padding: 15,
   },
@@ -198,8 +198,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
-    gap: 10,
+    // marginBottom: 15,
+    // gap: 10,
   },
   title: {
     flex: 1,
